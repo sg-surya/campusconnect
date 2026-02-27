@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { doc, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { getCollegeNameFromEmail } from "@/lib/collegeDomains";
 import Link from "next/link";
@@ -57,6 +57,25 @@ export default function AuthModal({ isOpen, onClose, initialMode = "login", onSu
             setStatus("Success! Redirecting...");
             onSuccess?.();
             onClose();
+        } catch (err) {
+            setLoading(false);
+            setStatus(err.message);
+        }
+    };
+
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        if (!email) {
+            setStatus("Enter your email address first.");
+            return;
+        }
+        setLoading(true);
+        setStatus("Initiating reset pulse...");
+        try {
+            await sendPasswordResetEmail(auth, email);
+            setStatus("Reset link transmitted. Check your inbox.");
+            setLoading(false);
+            setTimeout(() => setMode("login"), 3000);
         } catch (err) {
             setLoading(false);
             setStatus(err.message);
@@ -260,7 +279,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = "login", onSu
 
                 <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px" }}>
                     <div style={{ display: "flex", gap: "24px" }}>
-                        <button style={navBtnStyle(mode === "login")} onClick={() => { setMode("login"); setStatus(""); }}>Login</button>
+                        <button style={navBtnStyle(mode === "login" || mode === "forgot-password")} onClick={() => { setMode("login"); setStatus(""); }}>Login</button>
                         <button style={navBtnStyle(mode === "signup")} onClick={() => { setMode("signup"); setStatus(""); }}>Signup</button>
                     </div>
                     <div style={{ fontWeight: 900, fontSize: "14px", border: "1.5px solid #fff", padding: "2px 6px", transform: "rotate(-5deg)" }}>CC</div>
@@ -293,6 +312,42 @@ export default function AuthModal({ isOpen, onClose, initialMode = "login", onSu
                                 >
                                     {loading ? "Decrypting..." : "Enter App →"}
                                 </button>
+
+                                <div style={{ textAlign: "center", marginTop: "16px" }}>
+                                    <button type="button" onClick={() => setMode("forgot-password")} style={{ background: "none", border: "none", color: "#666", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px", cursor: "pointer", textDecoration: "underline" }}>
+                                        Forgotten Access Key?
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    ) : mode === "forgot-password" ? (
+                        <form onSubmit={handleForgotPassword} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                            <div>
+                                <h1 style={{ fontSize: "2.4rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-2px", lineHeight: 0.9, marginBottom: "8px" }}>Reset.</h1>
+                                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>Recover your campus identity access.</p>
+                            </div>
+
+                            <div style={{ background: "#1a1a1c", border: "1px solid rgba(255,255,255,0.08)", padding: "30px", position: "relative" }}>
+                                <div style={{ position: "absolute", top: "-1px", left: "-1px", width: "12px", height: "12px", borderTop: "2px solid #8b5cf6", borderLeft: "2px solid #8b5cf6" }} />
+                                <div style={{ position: "absolute", bottom: "-1px", right: "-1px", width: "12px", height: "12px", borderBottom: "2px solid #8b5cf6", borderRight: "2px solid #8b5cf6" }} />
+
+                                <div style={{ marginBottom: "20px" }}>
+                                    <label style={labelStyle}>College Email</label>
+                                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@college.edu" style={inputStyle} required />
+                                </div>
+
+                                <button type="submit" style={btnMonolithStyle(loading)} disabled={loading}
+                                    onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; } }}
+                                    onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; } }}
+                                >
+                                    {loading ? "Transmitting..." : "Send Reset Link →"}
+                                </button>
+
+                                <div style={{ textAlign: "center", marginTop: "16px" }}>
+                                    <button type="button" onClick={() => setMode("login")} style={{ background: "none", border: "none", color: "#666", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px", cursor: "pointer", textDecoration: "underline" }}>
+                                        Back to Login
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     ) : (
