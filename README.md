@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CAMPUS CONNECT • V1.0
+### Find Your People. Start a Conversation.
 
-## Getting Started
+**Campus Connect** is an exclusive, real-time social platform built for students across India. Whether you want to network within your own college, find a study partner, or meet a potential co-founder, Campus Connect bridges the gap between verified Indian campuses.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🌟 What is Campus Connect?
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+In a world of generic social media, Campus Connect is a private digital square designed specifically for student life. No bots, no strangers—just verified students from India's top institutions engaging in meaningful video interactions.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 🛡️ Verified & Exclusive
+Access is restricted to students with an official `.edu` or college email ID. We support **100+ institutions** including all **IITs, NITs, BITS, IIITs**, and major private universities like **VIT, Manipal, and SRM.**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🚀 Key Features
 
-To learn more about Next.js, take a look at the following resources:
+### 1. Instant Matching
+Our real-time matching engine connects you with peers based on your needs:
+- **Local Reach**: Meet students from your own campus.
+- **Global Network**: Connect with verified students across India.
+- **Academic Sync**: Find a study partner in your own branch.
+- **Founder Match**: Network with student entrepreneurs and builders.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2. Immersive Video & Chat
+- **Safety First**: Every session starts with an automatic security scan to ensure a safe environment.
+- **Fluid Channels**: High-quality video calls with zero latency.
+- **Built-in Chat**: Share ideas, links, or just say hi while you're on a call.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. Social Karma
+- Earn **Social Karma** points through positive interactions.
+- Your karma score helps build trust and unlocks faster matching within the community.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎨 Premium Experience
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Designed with a high-end **"Graphite Gridwork"** aesthetic, the app provides a professional yet vibrant "App-like" experience.
+- **Single-Page Simplicity**: No more page reloads. Everything happens in one fluid app shell.
+- **Industrial Design**: A state-of-the-art interface that feels as serious as your career goals.
+
+---
+
+## 📥 How to Join?
+
+Joining the network is simple but secure:
+1. **Enter Your College Email**: Provide your official institutional ID.
+2. **Verify via OTP**: We send a secure code directly to your college inbox.
+3. **Build Your Profile**: Tell the community what you're studying and what you're looking for.
+4. **Start Matching**: Jump into a call and expand your network instantly.
+
+---
+
+## 🇮🇳 Powered by the Indian Student Community
+Campus Connect is more than a website—it's a digital bridge for India's brightest minds. From the labs of IIT Bombay to the libraries of NIT Warangal, we are all connected.
+
+**Enter the network. Find your people.**

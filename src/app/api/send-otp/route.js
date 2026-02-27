@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { isCollegeEmail } from "@/lib/collegeDomains";
 
 export async function POST(request) {
   try {
@@ -8,6 +9,13 @@ export async function POST(request) {
 
     if (!email) {
       return Response.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    // Check if it's a valid college email
+    if (!isCollegeEmail(email)) {
+      return Response.json({
+        error: "Access Denied: Currently, only students from verified Indian colleges (IITs, NITs, BITS, etc.) are supported. Use your college email ID."
+      }, { status: 403 });
     }
 
     // Generate 6-digit OTP

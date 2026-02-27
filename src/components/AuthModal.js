@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { getCollegeNameFromEmail } from "@/lib/collegeDomains";
 import Link from "next/link";
 
 export default function AuthModal({ isOpen, onClose, initialMode = "login", onSuccess }) {
@@ -26,6 +27,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = "login", onSu
         setStep(1);
         setStatus("");
     }, [initialMode, isOpen]);
+
+    useEffect(() => {
+        if (mode === "signup" && email.includes("@")) {
+            const college = getCollegeNameFromEmail(email);
+            if (college) updateForm("college", college);
+        }
+    }, [email, mode]);
 
     useEffect(() => {
         if (resendTimer > 0) {

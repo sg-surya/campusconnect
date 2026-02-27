@@ -1,0 +1,10 @@
+{
+    "github": {
+        "silent": true
+    },
+    "regions": [
+        "bom1"
+    ],
+    "cleanUrls": true,
+    "framework": "nextjs"
+}
