@@ -154,14 +154,35 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 if (others.length > 0) {
                     const bestMatch = others[0];
                     const bestData = bestMatch.data();
-                    const callId = [qRef.id, bestMatch.id].sort().join("_");
-                    try {
-                        isConnecting.current = true;
-                        await updateDoc(doc(db, "matchQueue", bestMatch.id), { status: "matched", matchedWith: user.uid, matchedWithData: myEntry, partnerDocId: qRef.id, callId });
-                        await updateDoc(doc(db, "matchQueue", qRef.id), { status: "matched", matchedWith: bestData.userId, matchedWithData: bestData, partnerDocId: bestMatch.id, callId });
-                        partnerDocIdRef.current = bestMatch.id;
-                        startWebRTC(bestData.userId, bestData, true, callId);
-                    } catch (e) { isConnecting.current = false; }
+
+                    // DETERMINISTIC TIE-BREAKER:
+                    // Both users will likely see each other in the searching queue.
+                    // Only the user with the lexicographically SMALLER UID is allowed to initiate.
+                    // The other user will wait to be matched by the one with the smaller UID.
+                    if (user.uid < bestData.userId) {
+                        const callId = [qRef.id, bestMatch.id].sort().join("_");
+                        try {
+                            isConnecting.current = true;
+                            await updateDoc(doc(db, "matchQueue", bestMatch.id), {
+                                status: "matched",
+                                matchedWith: user.uid,
+                                matchedWithData: myEntry,
+                                partnerDocId: qRef.id,
+                                callId
+                            });
+                            await updateDoc(doc(db, "matchQueue", qRef.id), {
+                                status: "matched",
+                                matchedWith: bestData.userId,
+                                matchedWithData: bestData,
+                                partnerDocId: bestMatch.id,
+                                callId
+                            });
+                            partnerDocIdRef.current = bestMatch.id;
+                            startWebRTC(bestData.userId, bestData, true, callId);
+                        } catch (e) {
+                            isConnecting.current = false;
+                        }
+                    }
                 }
             };
             searchInterval = setInterval(searchForPeers, 3000);
