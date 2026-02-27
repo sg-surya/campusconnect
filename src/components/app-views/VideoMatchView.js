@@ -320,7 +320,11 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden" }}>
+        <div className="video-match-container" style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden" }}>
+            {/* Mobile View Title */}
+            <div className="mobile-title" style={{ display: "none", position: "fixed", top: 0, left: 0, right: 0, height: "60px", background: "rgba(10,10,10,0.8)", backdropFilter: "blur(20px)", zIndex: 100, alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <div style={{ fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#8b5cf6", letterSpacing: "2px" }}>{matchType || "MATCH_ACTIVE"}</div>
+            </div>
             <div style={{
                 position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, opacity: 0.03,
                 backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
@@ -397,7 +401,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 </div>
             </div>
 
-            <aside style={{ borderLeft: "1px solid #1a1a1a", display: "flex", flexDirection: "column", background: "#080808", zIndex: 20 }}>
+            <aside className="chat-sidebar" style={{ borderLeft: "1px solid #1a1a1a", display: "flex", flexDirection: "column", background: "#080808", zIndex: 20 }}>
                 <div style={{ padding: "24px", borderBottom: "1px solid #1a1a1a", fontSize: "10px", fontWeight: 800, color: "#444", letterSpacing: "3px", fontFamily: "'JetBrains Mono', monospace" }}>
                     COMM_CHANNEL_DATA
                 </div>
@@ -439,6 +443,68 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     0% { transform: scaleX(0.5); opacity: 0.2; }
                     50% { transform: scaleX(2); opacity: 1; }
                     100% { transform: scaleX(0.5); opacity: 0.2; }
+                }
+
+                @media (max-width: 1024px) {
+                    .video-match-container {
+                        grid-template-columns: 1fr !important;
+                        grid-template-rows: 1fr !important;
+                        padding-top: 60px !important;
+                        padding-bottom: 80px !important;
+                    }
+                    .mobile-title {
+                        display: flex !important;
+                    }
+                    .video-grid {
+                        grid-template-columns: 1fr !important;
+                        grid-template-rows: 1fr 1fr !important;
+                        gap: 15px !important;
+                        padding: 15px !important;
+                        background: transparent !important;
+                    }
+                    .video-card {
+                        border-radius: 20px !important;
+                        overflow: hidden !important;
+                        border: 1px solid rgba(255,255,255,0.05) !important;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+                    }
+                    .chat-sidebar {
+                        position: fixed !important;
+                        bottom: 100px !important;
+                        right: 15px !important;
+                        width: 60px !important;
+                        height: 60px !important;
+                        border-radius: 30px !important;
+                        border: 1px solid #8b5cf6 !important;
+                        background: rgba(139,92,246,0.1) !important;
+                        backdrop-filter: blur(20px) !important;
+                        overflow: hidden !important;
+                        transition: 0.3s !important;
+                    }
+                    /* Simplified controls for mobile */
+                    .controls {
+                        position: fixed !important;
+                        bottom: 95px !important;
+                        left: 50% !important;
+                        transform: translateX(-50%) !important;
+                        width: auto !important;
+                        height: auto !important;
+                        background: rgba(20,20,20,0.8) !important;
+                        backdrop-filter: blur(20px) !important;
+                        padding: 10px 20px !important;
+                        border-radius: 40px !important;
+                        border: 1px solid rgba(255,255,255,0.05) !important;
+                        gap: 15px !important;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+                    }
+                    .controls button {
+                        padding: 12px !important;
+                        border-radius: 50% !important;
+                        width: 50px !important;
+                        height: 50px !important;
+                        clip-path: none !important;
+                        font-size: 0 !important; /* Hide text, use icons only if they exist - otherwise keep simple */
+                    }
                 }
             `}</style>
         </div>

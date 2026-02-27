@@ -257,7 +257,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = "login", onSu
 
             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.9)", backdropFilter: "blur(12px)" }} onClick={onClose} />
 
-            <div style={{
+            <div className="auth-card" style={{
                 width: "100%",
                 maxWidth: "460px",
                 background: "#0a0a0b",
@@ -393,11 +393,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = "login", onSu
                                         ) : !otpVerified ? (
                                             <div style={{ textAlign: "center", padding: "10px 0" }}>
                                                 <label style={{ ...labelStyle, textAlign: "center", marginBottom: "20px" }}>Enter 6-Digit Code</label>
-                                                <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginBottom: "20px" }}>
+                                                <div className="otp-container" style={{ display: "flex", gap: "8px", justifyContent: "center", marginBottom: "20px" }}>
                                                     {otpCode.map((d, i) => (
                                                         <input key={i} ref={otpRefs[i]} type="text" maxLength={1} value={d}
                                                             onChange={(e) => handleOtpChange(i, e.target.value)}
                                                             onKeyDown={(e) => e.key === "Backspace" && !d && i > 0 && otpRefs[i - 1].current.focus()}
+                                                            className="otp-input"
                                                             style={{ width: "45px", height: "55px", textAlign: "center", fontSize: "24px", fontWeight: 900, background: "rgba(0,0,0,0.4)", border: "1px solid #333", color: "#fff", outline: "none", borderColor: d ? "#8b5cf6" : "#333" }}
                                                         />
                                                     ))}
@@ -473,6 +474,24 @@ export default function AuthModal({ isOpen, onClose, initialMode = "login", onSu
                     </div>
                 )}
             </div>
+            <style jsx>{`
+                @media (max-width: 480px) {
+                    .auth-card {
+                        padding: 30px 20px !important;
+                    }
+                    .otp-input {
+                        width: 35px !important;
+                        height: 45px !important;
+                        font-size: 18px !important;
+                    }
+                    .otp-container {
+                        gap: 4px !important;
+                    }
+                    h1 {
+                        font-size: 1.8rem !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }

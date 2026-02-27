@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function TermsPage() {
     return (
-        <div style={{ minHeight: "100vh", background: "#050505", color: "#e2e2e2", fontFamily: "'Inter', sans-serif", padding: "80px 40px" }}>
+        <div className="terms-wrapper" style={{ minHeight: "100vh", background: "#050505", color: "#e2e2e2", fontFamily: "'Inter', sans-serif", padding: "80px 40px" }}>
             <div style={{ maxWidth: "800px", margin: "0 auto" }}>
                 <Link href="/" style={{ color: "#8b5cf6", fontSize: "12px", textTransform: "uppercase", letterSpacing: "2px", textDecoration: "none", display: "inline-block", marginBottom: "40px" }}>← Back to CampusConnect</Link>
 
@@ -53,6 +53,10 @@ export default function TermsPage() {
 
             <style jsx global>{`
                 body { margin: 0; background: #050505; }
+                @media (max-width: 768px) {
+                    .terms-wrapper { padding: 40px 20px !important; }
+                    h1 { font-size: 2rem !important; }
+                }
             `}</style>
         </div>
     );

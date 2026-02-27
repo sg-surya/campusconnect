@@ -29,7 +29,7 @@ export default function ProfileView({ user, profile }) {
     };
 
     return (
-        <div style={{ padding: "60px", maxWidth: "800px", margin: "0 auto" }}>
+        <div className="profile-wrapper" style={{ padding: "60px", maxWidth: "800px", margin: "0 auto" }}>
             <h1 style={{ fontSize: "3rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-3px", marginBottom: "40px" }}>Your Profile.</h1>
 
             <form onSubmit={handleSave} style={{ background: "#0a0a0b", border: "1px solid #1a1a1a", padding: "40px" }}>
@@ -52,6 +52,12 @@ export default function ProfileView({ user, profile }) {
                     {isSaving ? "Saving..." : "Update Identity"}
                 </button>
             </form>
+            <style jsx>{`
+                @media (max-width: 768px) {
+                    .profile-wrapper { padding: 40px 20px !important; }
+                    h1 { font-size: 2rem !important; }
+                }
+            `}</style>
         </div>
     );
 }

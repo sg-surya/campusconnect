@@ -159,16 +159,16 @@ export default function LandingPage() {
         zIndex: -1, pointerEvents: "none"
       }} />
 
-      <div style={{ display: "flex", minHeight: "100vh", width: "100vw" }}>
+      <div className="main-wrapper" style={{ display: "flex", minHeight: "100vh", width: "100%", overflowX: "hidden" }}>
 
         {/* ══ LEFT SIDEBAR ══ */}
-        <aside style={{
+        <aside className="sidebar-nav" style={{
           width: "80px", flexShrink: 0, borderRight: "1px solid #242424",
           display: "flex", flexDirection: "column", alignItems: "center",
           padding: "28px 0", background: "rgba(10,10,10,0.85)", backdropFilter: "blur(12px)",
           position: "sticky", top: 0, height: "100vh",
         }}>
-          <div style={{ fontWeight: 900, fontSize: "22px", letterSpacing: "-2px", border: "2px solid #e0e0e0", padding: "4px 6px", transform: "rotate(-5deg)", marginBottom: "50px", userSelect: "none" }}>CC</div>
+          <div className="logo-small" style={{ fontWeight: 900, fontSize: "22px", letterSpacing: "-2px", border: "2px solid #e0e0e0", padding: "4px 6px", transform: "rotate(-5deg)", marginBottom: "50px", userSelect: "none" }}>CC</div>
           <nav style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             {navItems.map((item, i) => (
               <a key={item} href={item === "Support" ? "https://discord.gg/zNUtGNNmRG" : `#${item.toLowerCase()}`}
@@ -184,7 +184,7 @@ export default function LandingPage() {
               >{item}</a>
             ))}
           </nav>
-          <div style={{ marginTop: "auto", marginBottom: "12px", width: "6px", height: "6px", borderRadius: "50%", background: "#00ff66", boxShadow: "0 0 8px rgba(0,255,102,0.5)" }} />
+          <div className="status-dot" style={{ marginTop: "auto", marginBottom: "12px", width: "6px", height: "6px", borderRadius: "50%", background: "#00ff66", boxShadow: "0 0 8px rgba(0,255,102,0.5)" }} />
         </aside>
 
         {/* ══ MAIN CONTENT ══ */}
@@ -197,10 +197,16 @@ export default function LandingPage() {
             background: "rgba(10,10,10,0.7)", backdropFilter: "blur(12px)",
             position: "sticky", top: 0, zIndex: 50,
           }}>
-            <span style={{ fontWeight: 900, fontSize: "1.1rem", textTransform: "uppercase", letterSpacing: "-0.5px", fontStyle: "italic" }}>
+            <span className="desktop-only" style={{ fontWeight: 900, fontSize: "1.1rem", textTransform: "uppercase", letterSpacing: "-0.5px", fontStyle: "italic" }}>
               CampusConnect
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+            <div className="mobile-only" style={{ display: "none", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              <div style={{ fontWeight: 900, fontSize: "20px", border: "2px solid #fff", padding: "2px 6px", transform: "rotate(-5deg)" }}>CC</div>
+              <button style={{ background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+              </button>
+            </div>
+            <div className="desktop-only" style={{ display: "flex", alignItems: "center", gap: "24px" }}>
               {!loading && (
                 <>
                   {user ? (
@@ -225,10 +231,10 @@ export default function LandingPage() {
 
 
           {/* Hero */}
-          <section id="discover" style={{ padding: "80px", position: "relative", minHeight: "85vh", display: "flex", alignItems: "center" }}>
+          <section id="discover" className="hero-section" style={{ padding: "80px", position: "relative", minHeight: "85vh", display: "flex", alignItems: "center" }}>
             <div style={{ maxWidth: "1600px", margin: "0 auto", width: "100%" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "80px", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ flex: "1 1 500px" }}>
+              <div className="hero-content" style={{ display: "flex", flexWrap: "wrap", gap: "80px", alignItems: "center", justifyContent: "space-between" }}>
+                <div className="hero-text" style={{ flex: "1 1 500px" }}>
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "30px",
                     background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)",
@@ -246,11 +252,11 @@ export default function LandingPage() {
                     Safely.
                   </h1>
 
-                  <p style={{ fontSize: "1.1rem", color: "rgba(255,255,255,0.5)", maxWidth: "520px", lineHeight: 1.8, marginBottom: "45px" }}>
+                  <p className="mobile-hide" style={{ fontSize: "1.1rem", color: "rgba(255,255,255,0.5)", maxWidth: "520px", lineHeight: 1.8, marginBottom: "45px" }}>
                     CampusConnect is India&apos;s first exclusive video-networking platform built specifically for university students. No strangers, no bots — just verified student identities.
                   </p>
 
-                  <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+                  <div className="hero-cta" style={{ display: "flex", gap: "24px", alignItems: "center" }}>
                     <button
                       onClick={() => user ? router.push("/app") : openAuth("signup")}
                       style={{
@@ -281,7 +287,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Creative Idea #3: Floating "Live-Preview" Wireframe HUD */}
-                <div className="etch-reveal" style={{
+                <div className="etch-reveal hud-container" style={{
                   width: "100%", maxWidth: "520px", flexShrink: 0, perspective: "1000px"
                 }}>
                   <div style={{
@@ -365,12 +371,12 @@ export default function LandingPage() {
           {/* Mission / How it works */}
           <section id="features" style={{ padding: "100px 80px", background: "rgba(5,5,5,0.8)" }}>
             <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "100px", alignItems: "start" }}>
+              <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "100px", alignItems: "start" }}>
                 <div>
                   <h2 style={{ fontSize: "3rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-3px", lineHeight: 1, marginBottom: "30px" }}>
                     One Platform.<br />Elite Community.
                   </h2>
-                  <p style={{ color: "rgba(255,255,255,0.4)", lineHeight: 1.8, marginBottom: "30px" }}>
+                  <p className="mobile-hide" style={{ color: "rgba(255,255,255,0.4)", lineHeight: 1.8, marginBottom: "30px" }}>
                     CampusConnect was born out of a simple need: College students needed a place to network without the toxicity of random video apps. By requiring a **.edu** or **Verified College Email**, we ensure that every person you meet is a peer.
                   </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -388,7 +394,7 @@ export default function LandingPage() {
                     <div key={f.num} className="etch-reveal" style={{ background: "#111", padding: "30px", border: "1px solid #1a1a1a" }}>
                       <div style={{ fontSize: "10px", color: "#8b5cf6", marginBottom: "15px", fontFamily: "'JetBrains Mono', monospace" }}>{f.num} // {f.tag}</div>
                       <h4 style={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "10px", textTransform: "uppercase" }}>{f.title}</h4>
-                      <p style={{ fontSize: "12px", color: "#555", lineHeight: 1.6 }}>{f.desc}</p>
+                      <p className="mobile-hide" style={{ fontSize: "12px", color: "#555", lineHeight: 1.6 }}>{f.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -428,7 +434,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h3 style={{ fontWeight: 800, fontSize: "1.25rem", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>{m.title}</h3>
-                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.85rem", lineHeight: 1.6 }}>{m.desc}</p>
+                      <p className="mobile-hide" style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.85rem", lineHeight: 1.6 }}>{m.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -444,7 +450,7 @@ export default function LandingPage() {
                 <h2 style={{ fontSize: "4.5rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-5px", lineHeight: 0.9 }}>THE CORE<br /><span style={{ color: "transparent", WebkitTextStroke: "1px rgba(255,255,255,0.2)" }}>PROTOCOLS.</span></h2>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "40px" }}>
+              <div className="protocols-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "40px" }}>
 
                 {/* 1. SOCIAL KARMA PROGRESSION */}
                 <div className="etch-reveal" style={{ gridColumn: "span 2", background: "rgba(139,92,246,0.02)", border: "1px solid rgba(139,92,246,0.1)", padding: "60px", borderRadius: "8px", position: "relative", overflow: "hidden" }}>
@@ -637,7 +643,7 @@ export default function LandingPage() {
                 <div style={{ fontWeight: 900, fontSize: "24px", border: "2px solid white", padding: "2px 6px", display: "inline-block", transform: "rotate(-5deg)", marginBottom: "20px" }}>CC</div>
                 <p style={{ color: "#444", fontSize: "12px", maxWidth: "260px" }}>The digital hallway for the modern Indian student. Redefining how we build networks.</p>
               </div>
-              <div style={{ display: "flex", gap: "80px" }}>
+              <div className="links-container" style={{ display: "flex", gap: "80px" }}>
                 <div>
                   <h5 style={{ fontSize: "10px", color: "#8b5cf6", letterSpacing: "2px", marginBottom: "20px" }}>PRODUCT</h5>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#666" }}>
@@ -697,6 +703,129 @@ export default function LandingPage() {
 
         /* Smooth Anchor Scroll */
         html { scroll-behavior: smooth; }
+
+        /* Responsive Fixes */
+        @media (max-width: 768px) {
+          .mobile-hide, .desktop-only { display: none !important; }
+          .mobile-only { display: flex !important; }
+          
+          .main-wrapper { 
+            flex-direction: column !important; 
+            padding-top: 0 !important; 
+            background: #000 !important;
+            overflow-x: hidden !important;
+          }
+          .sidebar-nav { display: none !important; }
+          
+          header { 
+            background: rgba(0,0,0,0.9) !important;
+            backdrop-filter: blur(30px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            height: 64px !important;
+            padding: 0 20px !important; 
+          }
+
+          section { 
+            padding: 40px 20px !important; 
+            overflow: hidden !important;
+          }
+          
+          .hero-section { 
+            padding: 40px 0 !important;
+            min-height: calc(100vh - 64px) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          .hero-content { 
+            align-items: center !important;
+            text-align: center !important;
+            gap: 60px !important; 
+            width: 100% !important;
+            flex-direction: column !important;
+          }
+          .hero-text {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 30px !important;
+          }
+          .hero-text > div:first-of-type {
+            margin-bottom: 20px !important;
+          }
+          .hero-text h1 { 
+            font-size: 3.5rem !important; 
+            letter-spacing: -3px !important; 
+            line-height: 0.8 !important;
+            margin-bottom: 40px !important;
+            font-weight: 900 !important;
+          }
+          .hero-cta {
+            width: 100% !important;
+            justify-content: center !important;
+            flex-direction: column !important;
+            gap: 32px !important;
+          }
+          .hero-cta button {
+            width: 100% !important;
+            padding: 22px !important;
+            clip-path: none !important;
+            border-radius: 12px !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+            background: #8b5cf6 !important;
+            color: #fff !important;
+            box-shadow: 0 15px 40px rgba(139,92,246,0.3) !important;
+          }
+
+          .hud-container { display: none !important; }
+
+          .grid-2 { grid-template-columns: 1fr !important; gap: 40px !important; }
+          
+          .protocols-grid { 
+            grid-template-columns: 1fr !important; 
+            gap: 12px !important; 
+          }
+          .protocols-grid > div { 
+            padding: 24px !important; 
+            border-radius: 20px !important;
+            grid-column: span 1 !important;
+          }
+          .protocols-grid h3 { 
+            font-size: 1.4rem !important; 
+          }
+
+          /* Institution Grid Fix */
+          [style*="gridTemplateColumns: repeat(auto-fill, minmax(350px, 1fr))"] {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+            background: transparent !important;
+          }
+          [style*="gridTemplateColumns: 1fr 1fr"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          
+          footer { 
+            padding: 60px 20px 40px !important; 
+          }
+          footer > div:first-of-type {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+          footer .links-container { 
+            gap: 40px !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+          footer div[style*="justifyContent: space-between"] {
+            flex-direction: column !important;
+            gap: 20px !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+        }
       `}</style>
     </>
   );

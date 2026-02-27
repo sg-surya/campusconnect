@@ -79,7 +79,7 @@ export default function DashboardView({ user, profile, onStartMatch }) {
     const displayYear = profile?.year ? `Batch ${2024 + (5 - parseInt(profile.year))}` : "Verified Student";
 
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden" }}>
+        <div className="dash-container" style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden" }}>
             {/* Interactive Background Grid */}
             <div style={{
                 position: "absolute", inset: 0, pointerEvents: "none", zIndex: 1,
@@ -99,8 +99,8 @@ export default function DashboardView({ user, profile, onStartMatch }) {
                 backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
             }} />
 
-            <main style={{ padding: "60px", overflowY: "auto", position: "relative", zIndex: 5 }}>
-                <header style={{ marginBottom: "80px" }}>
+            <main className="dash-main" style={{ padding: "60px", overflowY: "auto", position: "relative", zIndex: 5 }}>
+                <header className="dash-header" style={{ marginBottom: "80px" }}>
                     <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", color: "#8b5cf6", letterSpacing: "4px", marginBottom: "20px", textTransform: "uppercase" }}>
                         SYSTEM_DASHBOARD_V1.0
                     </div>
@@ -109,12 +109,12 @@ export default function DashboardView({ user, profile, onStartMatch }) {
                     </h1>
                 </header>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "30px" }}>
+                <div className="modes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "30px" }}>
                     {modes.map((m, i) => (
                         <div key={m.key} className="mode-card" style={{
                             background: "rgba(15,15,17,0.8)", padding: "40px", border: "1px solid rgba(255,255,255,0.05)",
                             position: "relative", transition: "0.4s cubic-bezier(0.19, 1, 0.22, 1)", backdropFilter: "blur(10px)",
-                            overflow: "hidden"
+                            overflow: "hidden", borderRadius: "12px"
                         }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = "translateY(-5px)";
@@ -126,15 +126,15 @@ export default function DashboardView({ user, profile, onStartMatch }) {
                                 e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
                                 e.currentTarget.style.boxShadow = "none";
                             }}>
-                            {/* Card Decorative Corners */}
-                            <div style={{ position: "absolute", top: "-1px", left: "-1px", width: "12px", height: "12px", borderTop: "2px solid #333", borderLeft: "2px solid #333" }} />
-                            <div style={{ position: "absolute", bottom: "-1px", right: "-1px", width: "12px", height: "12px", borderBottom: "2px solid #333", borderRight: "2px solid #333" }} />
+                            {/* Card Decorative Corners - hide on mobile */}
+                            <div className="card-corner desktop-only" style={{ position: "absolute", top: "-1px", left: "-1px", width: "12px", height: "12px", borderTop: "2px solid #333", borderLeft: "2px solid #333" }} />
+                            <div className="card-corner desktop-only" style={{ position: "absolute", bottom: "-1px", right: "-1px", width: "12px", height: "12px", borderBottom: "2px solid #333", borderRight: "2px solid #333" }} />
 
                             <div style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: "#444", marginBottom: "12px" }}>0{i + 1} // ACCESS_POINT</div>
                             <h3 style={{ fontSize: "1.8rem", fontWeight: 900, marginBottom: "12px", textTransform: "uppercase", letterSpacing: "-1px" }}>{m.title}</h3>
-                            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: 1.6, marginBottom: "30px", minHeight: "60px" }}>{m.desc}</p>
+                            <p className="mobile-hide" style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: 1.6, marginBottom: "30px", minHeight: "60px" }}>{m.desc}</p>
 
-                            <button onClick={() => triggerMatch(m.key, m.title)} style={{
+                            <button onClick={() => triggerMatch(m.key, m.title)} className="match-btn" style={{
                                 border: "none", background: "#fff", color: "#000", padding: "16px 25px",
                                 fontFamily: "'JetBrains Mono', monospace", fontSize: "11px", fontWeight: 900,
                                 width: "100%", textAlign: "left", cursor: "pointer", transition: "0.3s",
@@ -151,7 +151,7 @@ export default function DashboardView({ user, profile, onStartMatch }) {
                 </div>
             </main>
 
-            <aside style={{ background: "rgba(8,8,9,0.95)", borderLeft: "1px solid rgba(255,255,255,0.05)", padding: "60px 40px", display: "flex", flexDirection: "column", zIndex: 11, backdropFilter: "blur(40px)" }}>
+            <aside className="dash-sidebar" style={{ background: "rgba(8,8,9,0.95)", borderLeft: "1px solid rgba(255,255,255,0.05)", padding: "60px 40px", display: "flex", flexDirection: "column", zIndex: 11, backdropFilter: "blur(40px)" }}>
                 <div style={{ marginBottom: "60px" }}>
                     <div style={{ fontSize: "10px", color: "#444", borderBottom: "1px solid #1a1a1a", paddingBottom: "16px", marginBottom: "30px", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "2px" }}>IDENTITY_PROTOCOL</div>
                     <div style={{
@@ -208,6 +208,53 @@ export default function DashboardView({ user, profile, onStartMatch }) {
                 @keyframes pulse-dot {
                     0%, 100% { opacity: 0.3; transform: scale(0.9); }
                     50% { opacity: 1; transform: scale(1.1); }
+                }
+
+                @media (max-width: 1024px) {
+                    .dash-container {
+                        grid-template-columns: 1fr !important;
+                        overflow-y: auto !important;
+                        height: auto !important;
+                    }
+                    .dash-sidebar {
+                        display: none !important;
+                    }
+                    .dash-main {
+                        padding: 24px 16px !important;
+                        padding-bottom: 20px !important;
+                    }
+                    .dash-header {
+                        margin-bottom: 30px !important;
+                        text-align: center;
+                    }
+                    .dash-header h1 {
+                        font-size: 2.8rem !important;
+                        letter-spacing: -2px !important;
+                    }
+                    .modes-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 20px !important;
+                    }
+                    .mode-card {
+                        padding: 24px !important;
+                        border-radius: 16px !important;
+                        background: linear-gradient(135deg, rgba(20,20,20,0.8), rgba(10,10,10,0.8)) !important;
+                    }
+                    .mode-card h3 {
+                        font-size: 1.4rem !important;
+                        margin-bottom: 16px !important;
+                    }
+                    .mobile-hide {
+                        display: none !important;
+                    }
+                    .match-btn {
+                        padding: 14px 20px !important;
+                        border-radius: 12px !important;
+                        clip-path: none !important;
+                        background: #8b5cf6 !important;
+                        color: #fff !important;
+                        text-align: center !important;
+                    }
                 }
             `}</style>
         </div>
