@@ -15,6 +15,7 @@ export default function DashboardPage() {
   // Real-time data
   const [onlineCount, setOnlineCount] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [activeMatches, setActiveMatches] = useState(0);
 
   const { user, profile, loading: authLoading, logout } = useAuth();
   const router = useRouter();
@@ -49,30 +50,37 @@ export default function DashboardPage() {
 
   // Real-time online users count
   useEffect(() => {
+    // We use a simpler query to count all isOnline users
     const q = query(collection(db, "users"), where("isOnline", "==", true));
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log("Online snapshot size:", snapshot.size);
       setOnlineCount(snapshot.size);
     });
 
-    return () => unsubscribe();
-  }, []);
-
-  // Total users count
-  useEffect(() => {
-    const fetchTotal = async () => {
+    // Also fetch initial total count and set an interval
+    const fetchStats = async () => {
       try {
-        const coll = collection(db, "users");
-        const snapshot = await getCountFromServer(coll);
-        setTotalUsers(snapshot.data().count);
+        const totalSnap = await getCountFromServer(collection(db, "users"));
+        setTotalUsers(totalSnap.data().count);
       } catch (err) {
-        console.log("Count error:", err);
+        console.error("Stats fetch error:", err);
       }
     };
-    fetchTotal();
+    fetchStats();
+    const interval = setInterval(fetchStats, 60000); // refresh total count every minute
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchTotal, 30000);
-    return () => clearInterval(interval);
+    // Active Matches count (status = 'matched')
+    const matchQ = query(collection(db, "matchQueue"), where("status", "==", "matched"));
+    const unsubMatches = onSnapshot(matchQ, (snapshot) => {
+      // Divide by 2 because each match has 2 participants in the queue
+      setActiveMatches(Math.floor(snapshot.size / 2));
+    });
+
+    return () => {
+      unsubscribe();
+      unsubMatches();
+      clearInterval(interval);
+    };
   }, []);
 
   // Mouse parallax effect
@@ -126,7 +134,7 @@ export default function DashboardPage() {
       } catch (e) { }
     }
     await logout();
-    router.push("/login");
+    router.push("/");
   };
 
   const modes = [
@@ -154,6 +162,12 @@ export default function DashboardPage() {
       desc: "Find someone studying the same subject or preparing for the same exam.",
       btnDefault: "Find Partner",
     },
+    {
+      key: "RANDOM",
+      title: "Random Match",
+      desc: "Connect with any active verified student across the platform randomly.",
+      btnDefault: "Connect Now",
+    }
   ];
 
   // Derived profile data
@@ -162,6 +176,14 @@ export default function DashboardPage() {
   const displayYear = profile?.year ? `${profile.year}${["st", "nd", "rd"][profile.year - 1] || "th"} Year` : "";
   const displayBio = profile?.bio || "Ready to connect with fellow students.";
   const displayInterests = profile?.interests?.length > 0 ? profile.interests : ["Student", "Campus Connect"];
+
+  const maskEmail = (email) => {
+    if (!email) return "—";
+    const [name, domain] = email.split("@");
+    if (!domain) return email;
+    const maskedName = name.substring(0, 2) + "*".repeat(Math.max(0, name.length - 2));
+    return `${maskedName}@${domain}`;
+  };
 
   // Loading state
   if (authLoading) {
@@ -475,8 +497,9 @@ export default function DashboardPage() {
             </div>
             {[
               { label: "Students Online", value: onlineCount.toLocaleString(), color: "#e0e0e0" },
+              { label: "Active Matches", value: activeMatches.toLocaleString(), color: "#8b5cf6" },
               { label: "Total Users", value: totalUsers.toLocaleString(), color: "#888888" },
-              { label: "Your Status", value: "Active ✓", color: "#4ade80" },
+              { label: "Your Status", value: "Active", color: "#4ade80", showCheck: true },
             ].map((stat, i) => (
               <div key={stat.label} style={{
                 display: "flex", justifyContent: "space-between",
@@ -485,7 +508,14 @@ export default function DashboardPage() {
                 fontSize: "12px",
               }}>
                 <span style={{ color: "#888888" }}>{stat.label}</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{stat.value}</span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", gap: "4px" }}>
+                  {stat.value}
+                  {stat.showCheck && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </span>
               </div>
             ))}
           </div>
@@ -501,15 +531,14 @@ export default function DashboardPage() {
             </div>
             <div style={{ fontSize: "11px", color: "#555", lineHeight: 2 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Email</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#888", fontSize: "10px" }}>
-                  {user?.email || "—"}
-                </span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span>Verified</span>
-                <span style={{ color: "#4ade80", fontFamily: "'JetBrains Mono', monospace", fontSize: "10px" }}>
-                  {profile?.emailVerified ? "Yes ✓" : "—"}
+                <span style={{ color: "#4ade80", fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", display: "flex", alignItems: "center", gap: "4px" }}>
+                  {profile?.emailVerified ? "Verified" : "Pending"}
+                  {profile?.emailVerified && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>

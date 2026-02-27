@@ -9,7 +9,7 @@ import { auth, db } from "@/lib/firebase";
 
 export default function SignupPage() {
     const [step, setStep] = useState(1);
-    const [form, setForm] = useState({ name: "", email: "", college: "", branch: "", year: "", password: "", confirmPassword: "" });
+    const [form, setForm] = useState({ name: "", email: "", gender: "Male", college: "", branch: "", year: "", password: "", confirmPassword: "" });
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState("Fill in your details to begin.");
     const [otpSent, setOtpSent] = useState(false);
@@ -181,6 +181,7 @@ export default function SignupPage() {
                     await setDoc(doc(db, "users", user.uid), {
                         name: form.name,
                         email: form.email,
+                        gender: form.gender,
                         college: form.college,
                         branch: form.branch,
                         year: form.year,
@@ -198,14 +199,19 @@ export default function SignupPage() {
                     setStatus("Profile saved locally. Redirecting...");
                 }
 
-                setStatus("Account created! Redirecting...");
-                console.log("Redirecting to /dashboard...");
-                router.push("/dashboard");
+                console.log("Signup flow completed. Triggering redirect...");
+                setStatus("Account created! Redirecting to dashboard...");
 
-                // Fallback redirect if router.push fails
-                setTimeout(() => {
-                    window.location.href = "/dashboard";
-                }, 2000);
+                // Final verify of profile write
+                setTimeout(async () => {
+                    console.log("Delayed redirect check...");
+                    router.push("/dashboard");
+                    // Hard redirect as ultimate fallback
+                    setTimeout(() => {
+                        console.log("Hard redirect fallback...");
+                        window.location.href = "/dashboard";
+                    }, 1000);
+                }, 500);
 
             } catch (err) {
                 console.error("Signup Error:", err);
@@ -388,6 +394,34 @@ export default function SignupPage() {
                                                     placeholder="you@college.edu" required
                                                     style={inputStyle} onFocus={handleFocus} onBlur={handleBlur}
                                                 />
+                                            </div>
+                                            <div>
+                                                <label style={labelStyle}>Gender Identity</label>
+                                                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                                                    {["Male", "Female", "Other"].map((g) => (
+                                                        <button
+                                                            key={g}
+                                                            type="button"
+                                                            onClick={() => update("gender", g)}
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: "10px",
+                                                                background: form.gender === g ? "rgba(139, 92, 246, 0.15)" : "transparent",
+                                                                border: "1px solid",
+                                                                borderColor: form.gender === g ? "#8b5cf6" : "#242424",
+                                                                color: form.gender === g ? "#fff" : "#888",
+                                                                fontFamily: "'JetBrains Mono', monospace",
+                                                                fontSize: "11px",
+                                                                textTransform: "uppercase",
+                                                                cursor: "pointer",
+                                                                transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                                                                letterSpacing: "0.05em"
+                                                            }}
+                                                        >
+                                                            {g}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </>
                                     )}

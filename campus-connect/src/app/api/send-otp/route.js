@@ -1,8 +1,6 @@
 import nodemailer from "nodemailer";
-
-// In-memory OTP store (in production, use Redis or Firestore)
-// Format: { email: { code, expiresAt } }
-const otpStore = globalThis.__otpStore || (globalThis.__otpStore = {});
+import { db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export async function POST(request) {
   try {
@@ -16,8 +14,11 @@ export async function POST(request) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // Store OTP
-    otpStore[email] = { code: otp, expiresAt };
+    // Store OTP in Firestore
+    await setDoc(doc(db, "otps", email), {
+      code: otp,
+      expiresAt: expiresAt
+    });
 
     // Configure transporter for Zoho
     const transporter = nodemailer.createTransport({

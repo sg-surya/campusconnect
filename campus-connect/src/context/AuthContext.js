@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
 const AuthContext = createContext({});
@@ -37,6 +37,14 @@ export function AuthProvider({ children }) {
     }, []);
 
     const logout = async () => {
+        if (user) {
+            try {
+                const userRef = doc(db, "users", user.uid);
+                await updateDoc(userRef, { isOnline: false });
+            } catch (err) {
+                console.error("Logout status update error:", err);
+            }
+        }
         await signOut(auth);
         setUser(null);
         setProfile(null);

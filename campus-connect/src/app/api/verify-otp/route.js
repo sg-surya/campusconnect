@@ -1,5 +1,5 @@
-// Shared OTP store with send-otp route
-const otpStore = globalThis.__otpStore || (globalThis.__otpStore = {});
+import { db } from "@/lib/firebase";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 
 export async function POST(request) {
     try {
@@ -12,17 +12,20 @@ export async function POST(request) {
             );
         }
 
-        const stored = otpStore[email];
+        const docRef = doc(db, "otps", email);
+        const docSnap = await getDoc(docRef);
 
-        if (!stored) {
+        if (!docSnap.exists()) {
             return Response.json(
                 { error: "No OTP found for this email. Please request a new one." },
                 { status: 400 }
             );
         }
 
+        const stored = docSnap.data();
+
         if (Date.now() > stored.expiresAt) {
-            delete otpStore[email];
+            await deleteDoc(docRef);
             return Response.json(
                 { error: "OTP has expired. Please request a new one." },
                 { status: 400 }
@@ -34,7 +37,7 @@ export async function POST(request) {
         }
 
         // OTP is valid — clean up
-        delete otpStore[email];
+        await deleteDoc(docRef);
 
         return Response.json({ success: true, message: "Email verified successfully" });
     } catch (error) {
