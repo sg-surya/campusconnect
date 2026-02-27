@@ -55,14 +55,23 @@ export default function LandingPage() {
     window.addEventListener("mousemove", move);
 
     const io = new IntersectionObserver(
-      (entries) => entries.forEach((en) => { if (en.isIntersecting) en.target.classList.add("etch-visible"); }),
+      (entries) => entries.forEach((en) => {
+        if (en.isIntersecting) {
+          en.target.classList.add("visible");
+        } else {
+          en.target.classList.remove("visible");
+        }
+      }),
       { threshold: 0.1 }
     );
-    document.querySelectorAll(".etch-reveal").forEach((el) => io.observe(el));
+    document.querySelectorAll("section, .etch-reveal").forEach((el) => {
+      el.classList.add("reveal-node");
+      io.observe(el);
+    });
     return () => { window.removeEventListener("mousemove", move); io.disconnect(); };
   }, []);
 
-  const navItems = ["Discover", "Features", "Modes", "Safety", "Support"];
+  const navItems = ["Discover", "Modes", "Protocols", "Network"];
 
   const Icons = {
     Globe: ({ size = 24, color = "currentColor" }) => (
@@ -357,39 +366,6 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* Mission / How it works */}
-          <section id="features" style={{ padding: "100px 80px", background: "rgba(5,5,5,0.8)" }}>
-            <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "100px", alignItems: "start" }}>
-                <div>
-                  <h2 style={{ fontSize: "3rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-3px", lineHeight: 1, marginBottom: "30px" }}>
-                    One Platform.<br />Elite Community.
-                  </h2>
-                  <p style={{ color: "rgba(255,255,255,0.4)", lineHeight: 1.8, marginBottom: "30px" }}>
-                    CampusConnect was born out of a simple need: College students needed a place to network without the toxicity of random video apps. By requiring a **.edu** or **Verified College Email**, we ensure that every person you meet is a peer.
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                    {["Direct campus-to-campus networking", "Founders finding builders", "Academic collaboration across India", "Secure, encrypted student identities"].map(text => (
-                      <div key={text} style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                        <div style={{ width: "20px", height: "1px", background: "#8b5cf6" }} />
-                        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", fontFamily: "'JetBrains Mono', monospace" }}>{text}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                  {features.map(f => (
-                    <div key={f.num} className="etch-reveal" style={{ background: "#111", padding: "30px", border: "1px solid #1a1a1a" }}>
-                      <div style={{ fontSize: "10px", color: "#8b5cf6", marginBottom: "15px", fontFamily: "'JetBrains Mono', monospace" }}>{f.num} // {f.tag}</div>
-                      <h4 style={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "10px", textTransform: "uppercase" }}>{f.title}</h4>
-                      <p style={{ fontSize: "12px", color: "#555", lineHeight: 1.6 }}>{f.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* Modes Section */}
           <section id="modes" style={{ padding: "100px 80px" }}>
@@ -427,6 +403,91 @@ export default function LandingPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </section>
+
+          {/* THE PROTOCOLS — NEW CRAZY SECTIONS */}
+          <section id="protocols" style={{ padding: "120px 80px", background: "linear-gradient(to bottom, #050505, #0a0a0a)" }}>
+            <div style={{ maxWidth: "1600px", margin: "0 auto" }}>
+              <div style={{ textAlign: "left", marginBottom: "80px" }}>
+                <div style={{ fontSize: "12px", color: "#8b5cf6", fontWeight: 900, letterSpacing: "4px", marginBottom: "15px", fontFamily: "'JetBrains Mono', monospace" }}>SYSTEM_OPERATIONS_v2.0</div>
+                <h2 style={{ fontSize: "4.5rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-5px", lineHeight: 0.9 }}>THE CORE<br /><span style={{ color: "transparent", WebkitTextStroke: "1px rgba(255,255,255,0.2)" }}>PROTOCOLS.</span></h2>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "40px" }}>
+
+                {/* 1. SOCIAL KARMA PROGRESSION */}
+                <div className="etch-reveal" style={{ gridColumn: "span 2", background: "rgba(139,92,246,0.02)", border: "1px solid rgba(139,92,246,0.1)", padding: "60px", borderRadius: "8px", position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", top: "20px", right: "20px", fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "rgba(139,92,246,0.4)" }}>[KARMA_TIER_VISUALIZER]</div>
+                  <h3 style={{ fontSize: "1.8rem", fontWeight: 900, marginBottom: "40px", textTransform: "uppercase" }}>Social Karma Progression</h3>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "20px", flexWrap: "wrap" }}>
+                    {[
+                      { tier: "ROOKIE", color: "#444", height: "40px", karma: "0+" },
+                      { tier: "BRONZE", color: "#cd7f32", height: "60px", karma: "500+" },
+                      { tier: "SILVER", color: "#C0C0C0", height: "80px", karma: "1500+" },
+                      { tier: "GOLD", color: "#FFD700", height: "100px", karma: "5000+" },
+                      { tier: "OBSIDIAN", color: "#8b5cf6", height: "140px", karma: "10000+", glow: true },
+                    ].map((t) => (
+                      <div key={t.tier} style={{ flex: 1, minWidth: "120px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <div style={{
+                          width: "100%", height: t.height, background: t.color, opacity: t.glow ? 1 : 0.3,
+                          boxShadow: t.glow ? "0 0 40px rgba(139,92,246,0.4)" : "none",
+                          clipPath: "polygon(20% 0, 80% 0, 100% 100%, 0% 100%)",
+                          transition: "0.3s"
+                        }} />
+                        <div style={{ marginTop: "15px", fontSize: "11px", fontWeight: 900, color: t.glow ? "#fff" : "#444" }}>{t.tier}</div>
+                        <div style={{ fontSize: "9px", color: t.glow ? "#8b5cf6" : "#222", fontFamily: "'JetBrains Mono', monospace" }}>{t.karma} PTS</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. FOUNDERS COMPLEMENTARITY */}
+                <div className="etch-reveal" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", padding: "50px", position: "relative" }}>
+                  <h3 style={{ fontSize: "1.5rem", fontWeight: 900, marginBottom: "15px", textTransform: "uppercase" }}>Skill-Pairing Engine</h3>
+                  <p style={{ fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "40px" }}>Our deterministic algorithm doesn&apos;t match similar skills. It matches complementary ones—pairing builders with architects.</p>
+                  <div style={{ height: "100px", display: "flex", alignItems: "center", justifyContent: "center", gap: "20px" }}>
+                    <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: "rgba(139,92,246,0.1)", border: "1px dashed #8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: 700 }}>TECH</div>
+                    <div style={{ fontSize: "20px", color: "#8b5cf6", animation: "pulse 1.2s infinite" }}>+</div>
+                    <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: "rgba(0,255,102,0.1)", border: "1px dashed #00ff66", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: 700 }}>BIZ</div>
+                  </div>
+                </div>
+
+                {/* 3. GHOST-PURGE TECHNOLOGY */}
+                <div className="etch-reveal" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", padding: "50px", position: "relative", overflow: "hidden" }}>
+                  <h3 style={{ fontSize: "1.5rem", fontWeight: 900, marginBottom: "15px", textTransform: "uppercase" }}>Ghost-Purge Tech</h3>
+                  <p style={{ fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "40px" }}>Zero Latency. Zero Wait. Our system purges inactive nodes every 200ms to ensure you only meet 100% active students.</p>
+                  <div style={{ position: "absolute", right: "-20px", bottom: "-20px", opacity: 0.1 }}>
+                    <div style={{ width: "200px", height: "200px", border: "2px solid #fff", borderRadius: "50%", animation: "ping-large 3s infinite" }} />
+                  </div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", color: "#00ff66" }}>› PURGING_STALE_NODES... [DONE]</div>
+                </div>
+
+                {/* 4. VERIFIED DIGITAL ID CARDS */}
+                <div className="etch-reveal" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", padding: "50px", position: "relative" }}>
+                  <h3 style={{ fontSize: "1.5rem", fontWeight: 900, marginBottom: "15px", textTransform: "uppercase" }}>Identity Verification</h3>
+                  <p style={{ fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "30px" }}>Your college ID is your access key. Verified profiles carry the CC-Silver Badge of Authenticity.</p>
+                  <div style={{ display: "flex", gap: "15px" }}>
+                    {["IITB", "BITS", "NITW"].map(t => (
+                      <div key={t} style={{
+                        padding: "10px 15px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
+                        fontSize: "12px", fontWeight: 900, fontFamily: "'JetBrains Mono', monospace", color: "rgba(255,255,255,0.4)"
+                      }}>{t}</div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. NODE-TO-NODE P2P PRIVACY */}
+                <div className="etch-reveal" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", padding: "50px", position: "relative" }}>
+                  <h3 style={{ fontSize: "1.5rem", fontWeight: 900, marginBottom: "15px", textTransform: "uppercase" }}>Serverless-P2P</h3>
+                  <p style={{ fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "40px" }}>We don&apos;t store your video. Data is encrypted and routed directly between students using WebRTC protocol.</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+                    <div style={{ width: "10px", height: "10px", background: "#8b5cf6" }} />
+                    <div style={{ height: "1px", flex: 1, background: "linear-gradient(90deg, #8b5cf6, transparent)" }} />
+                    <Icons.Shield size={24} color="#8b5cf6" />
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -518,27 +579,6 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* Safety First */}
-          <section id="safety" style={{ padding: "100px 80px", background: "linear-gradient(to bottom, transparent, #080808)" }}>
-            <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
-              <div style={{ fontSize: "12px", color: "#ff4757", fontWeight: 900, letterSpacing: "4px", marginBottom: "20px" }}>SHIELD_PROTOCOL_ACTIVE</div>
-              <h2 style={{ fontSize: "4rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-4px", marginBottom: "40px" }}>Safety Built-In.</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "40px", textAlign: "left" }}>
-                <div>
-                  <h4 style={{ color: "#fff", fontWeight: 800, marginBottom: "10px" }}>AI Moderation</h4>
-                  <p style={{ fontSize: "12px", color: "#555" }}>Real-time filtering of inappropriate language and visual content using neural networks.</p>
-                </div>
-                <div>
-                  <h4 style={{ color: "#fff", fontWeight: 800, marginBottom: "10px" }}>Verified Pulse</h4>
-                  <p style={{ fontSize: "12px", color: "#555" }}>Every student is checked against an active university roster. No outsiders allowed.</p>
-                </div>
-                <div>
-                  <h4 style={{ color: "#fff", fontWeight: 800, marginBottom: "10px" }}>End-to-End</h4>
-                  <p style={{ fontSize: "12px", color: "#555" }}>All video sessions are peer-to-peer and encrypted. Privacy isn&apos;t an option, it&apos;s a standard.</p>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* Footer */}
           <footer style={{ padding: "80px", borderTop: "1px solid #1a1a1a" }}>
@@ -551,9 +591,9 @@ export default function LandingPage() {
                 <div>
                   <h5 style={{ fontSize: "10px", color: "#8b5cf6", letterSpacing: "2px", marginBottom: "20px" }}>PRODUCT</h5>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#666" }}>
-                    <Link href="#features">Features</Link>
                     <Link href="#modes">Modes</Link>
-                    <Link href="#safety">Safety</Link>
+                    <Link href="#protocols">Protocols</Link>
+                    <Link href="#network">Network</Link>
                     <a href="https://discord.gg/zNUtGNNmRG" target="_blank" rel="noopener noreferrer" style={{ color: "#8b5cf6" }}>Support (Discord)</a>
                   </div>
                 </div>
@@ -588,6 +628,25 @@ export default function LandingPage() {
           from { transform: translateY(-100%); }
           to { transform: translateY(400%); }
         }
+        @keyframes ping-large {
+          0% { transform: scale(0.5); opacity: 0.8; }
+          100% { transform: scale(3); opacity: 0; }
+        }
+        @keyframes revealUp {
+          from { opacity: 0; transform: translateY(30px); filter: blur(10px); }
+          to { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .reveal-node { opacity: 0; }
+        .reveal-node.visible { animation: revealUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 10px; border: 2px solid #050505; }
+        ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+
+        /* Smooth Anchor Scroll */
+        html { scroll-behavior: smooth; }
       `}</style>
     </>
   );
