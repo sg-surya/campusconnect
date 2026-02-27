@@ -31,6 +31,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     const streamRef = useRef(null);
     const pc = useRef(null);
     const isConnecting = useRef(false);
+    const currentCallIdRef = useRef(null);
 
     const Icons = {
         Camera: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>,
@@ -55,14 +56,45 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
     const cleanupQueue = async () => {
         isConnecting.current = false;
+
+        // 1. Notify partner about disconnection if matched
+        if (partnerDocIdRef.current) {
+            try {
+                const partnerRef = doc(db, "matchQueue", partnerDocIdRef.current);
+                await updateDoc(partnerRef, { status: "disconnected" });
+            } catch (e) { }
+            partnerDocIdRef.current = null;
+        }
+
+        // 2. Clean up local queue entry
         if (queueDocRef.current) {
-            const docRef = doc(db, "matchQueue", queueDocRef.current);
-            await updateDoc(docRef, { status: "disconnected" }).catch(() => { });
-            setTimeout(() => deleteDoc(docRef).catch(() => { }), 1500);
+            try {
+                const docRef = doc(db, "matchQueue", queueDocRef.current);
+                await updateDoc(docRef, { status: "disconnected" });
+                // Instantly delete or schedule deletion
+                await deleteDoc(docRef).catch(() => { });
+            } catch (e) { }
             queueDocRef.current = null;
         }
-        if (pc.current) { pc.current.close(); pc.current = null; }
+
+        // 3. Close Peer Connection
+        if (pc.current) {
+            pc.current.getSenders().forEach(s => pc.current.removeTrack(s));
+            pc.current.close();
+            pc.current = null;
+        }
+
+        // 4. Cleanup UI/Media
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
+        // 5. Cleanup signaling/calls doc if exists
+        if (currentCallIdRef.current) {
+            try {
+                await deleteDoc(doc(db, "calls", currentCallIdRef.current));
+            } catch (e) { }
+            currentCallIdRef.current = null;
+        }
+        setCurrentCallId(null);
     };
 
     useEffect(() => {
@@ -87,7 +119,11 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             myUnsub = onSnapshot(doc(db, "matchQueue", qRef.id), (snap) => {
                 const data = snap.data();
                 if (!data) return;
-                if (data.status === "disconnected" && !isSearching) { handleNext(); return; }
+                // Immediate termination if doc status is disconnected
+                if (data.status === "disconnected") {
+                    handleNext();
+                    return;
+                }
                 if (data.status === "matched" && data.matchedWith && isSearching && !isConnecting.current) {
                     isConnecting.current = true;
                     partnerDocIdRef.current = data.partnerDocId;
@@ -118,6 +154,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
         const startWebRTC = async (pId, pData, isCaller, callId) => {
             setCurrentCallId(callId);
+            currentCallIdRef.current = callId;
             setIsSearching(false);
             setPartner(pData);
             setSafetyBlur(true);
