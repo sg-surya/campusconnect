@@ -36,10 +36,65 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     const Icons = {
         Camera: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>,
         Mic: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>,
-        Shield: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+        Shield: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>,
+        Star: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
     };
 
-    // ── 1. Create/Toggle Media Stream ──
+    const calculateCompatibility = (me, target, searchAge) => {
+        let score = 0;
+        const myInterests = me.interests || [];
+        const targetInterests = target.interests || [];
+        const overlap = myInterests.filter(i => targetInterests.includes(i)).length;
+
+        if (me.mode === "FOUNDER") {
+            const isTech = myInterests.some(i => ["tech", "coding", "dev"].includes(i.toLowerCase()));
+            const isBiz = targetInterests.some(i => ["marketing", "business", "design"].includes(i.toLowerCase()));
+            if (isTech && isBiz) score += 40;
+            else score += (overlap * 10);
+        } else if (me.mode === "ACADEMIC") {
+            if (me.branch === target.branch) score += 40;
+            else score += (overlap * 5);
+        } else {
+            score += (overlap * 15);
+        }
+
+        const karmaDiff = Math.abs((me.karma || 100) - (target.karma || 100));
+        score += Math.max(0, 20 - (karmaDiff / 10));
+        const waitTime = (Date.now() - (target.createdAt?.toMillis() || Date.now())) / 1000;
+        score += Math.min(20, waitTime * 2);
+        if (searchAge > 15) score += 10;
+        return Math.min(100, score);
+    };
+
+    const handleNext = () => {
+        cleanupQueue();
+        setIsSearching(true);
+        setPartner(null);
+        setCurrentCallId(null);
+        setMessages([]);
+        setChatTime(0);
+        setSafetyBlur(true);
+    };
+
+    const cleanupQueue = async () => {
+        isConnecting.current = false;
+        if (partnerDocIdRef.current) {
+            try { await updateDoc(doc(db, "matchQueue", partnerDocIdRef.current), { status: "disconnected" }).catch(() => { }); } catch (e) { }
+            partnerDocIdRef.current = null;
+        }
+        if (queueDocRef.current) {
+            try { await deleteDoc(doc(db, "matchQueue", queueDocRef.current)).catch(() => { }); } catch (e) { }
+            queueDocRef.current = null;
+        }
+        if (pc.current) { pc.current.close(); pc.current = null; }
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+        if (currentCallIdRef.current) {
+            try { await deleteDoc(doc(db, "calls", currentCallIdRef.current)); } catch (e) { }
+            currentCallIdRef.current = null;
+        }
+        setCurrentCallId(null);
+    };
+
     useEffect(() => {
         async function getCamera() {
             try {
@@ -55,84 +110,93 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         };
     }, []);
 
-    // Effect to handle Mute/Camera Toggles for the peer
     useEffect(() => {
         if (!streamRef.current) return;
-        streamRef.current.getAudioTracks().forEach(track => {
-            track.enabled = !isMuted;
-        });
-    }, [isMuted]);
-
-    useEffect(() => {
-        if (!streamRef.current) return;
-        streamRef.current.getVideoTracks().forEach(track => {
-            track.enabled = !isCameraOff;
-        });
+        streamRef.current.getVideoTracks().forEach(track => { track.enabled = !isCameraOff; });
     }, [isCameraOff]);
 
-    const cleanupQueue = async () => {
-        isConnecting.current = false;
+    useEffect(() => {
+        if (!streamRef.current) return;
+        streamRef.current.getAudioTracks().forEach(track => { track.enabled = !isMuted; });
+    }, [isMuted]);
 
-        // 1. Notify partner about disconnection if matched
-        if (partnerDocIdRef.current) {
-            try {
-                const partnerRef = doc(db, "matchQueue", partnerDocIdRef.current);
-                await updateDoc(partnerRef, { status: "disconnected" });
-            } catch (e) { }
-            partnerDocIdRef.current = null;
+    const startWebRTC = async (pId, pData, isCaller, callId) => {
+        setCurrentCallId(callId);
+        currentCallIdRef.current = callId;
+        setIsSearching(false);
+        setPartner(pData);
+        setSafetyBlur(true);
+        setTimeout(() => setSafetyBlur(false), 3000);
+        setMessages([{ id: "sys", text: `Connected with ${pData.name}. Peer channel ready.`, sender: "system" }]);
+
+        const peer = new RTCPeerConnection(servers);
+        pc.current = peer;
+        if (streamRef.current) streamRef.current.getTracks().forEach(t => peer.addTrack(t, streamRef.current));
+
+        peer.ontrack = (e) => {
+            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0];
+        };
+
+        const callDoc = doc(db, "calls", callId);
+        peer.onicecandidate = (e) => {
+            if (e.candidate) addDoc(collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON()).catch(() => { });
+        };
+
+        if (isCaller) {
+            const offer = await peer.createOffer();
+            await peer.setLocalDescription(offer);
+            await setDoc(callDoc, { offer: { sdp: offer.sdp, type: offer.type } });
+            onSnapshot(callDoc, async (s) => {
+                const d = s.data();
+                if (d?.answer && peer.signalingState === "have-local-offer") {
+                    await peer.setRemoteDescription(new RTCSessionDescription(d.answer));
+                }
+            });
+            onSnapshot(collection(callDoc, "calleeCandidates"), (s) => {
+                s.docChanges().forEach(async (c) => {
+                    if (c.type === "added") await peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
+                });
+            });
+        } else {
+            let sdpSet = false;
+            onSnapshot(callDoc, async (s) => {
+                const d = s.data();
+                if (d?.offer && !sdpSet) {
+                    sdpSet = true;
+                    await peer.setRemoteDescription(new RTCSessionDescription(d.offer));
+                    const ans = await peer.createAnswer();
+                    await peer.setLocalDescription(ans);
+                    await updateDoc(callDoc, { answer: { sdp: ans.sdp, type: ans.type } });
+                }
+            });
+            onSnapshot(collection(callDoc, "callerCandidates"), (s) => {
+                s.docChanges().forEach(async (c) => {
+                    if (c.type === "added") await peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
+                });
+            });
         }
-
-        // 2. Clean up local queue entry
-        if (queueDocRef.current) {
-            try {
-                const docRef = doc(db, "matchQueue", queueDocRef.current);
-                await updateDoc(docRef, { status: "disconnected" });
-                // Instantly delete or schedule deletion
-                await deleteDoc(docRef).catch(() => { });
-            } catch (e) { }
-            queueDocRef.current = null;
-        }
-
-        // 3. Close Peer Connection
-        if (pc.current) {
-            pc.current.getSenders().forEach(s => pc.current.removeTrack(s));
-            pc.current.close();
-            pc.current = null;
-        }
-
-        // 4. Cleanup UI/Media
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-
-        // 5. Cleanup signaling/calls doc if exists
-        if (currentCallIdRef.current) {
-            try {
-                await deleteDoc(doc(db, "calls", currentCallIdRef.current));
-            } catch (e) { }
-            currentCallIdRef.current = null;
-        }
-        setCurrentCallId(null);
     };
 
     useEffect(() => {
         if (!user || !isSearching) return;
         let myUnsub = null;
         let searchInterval = null;
+        const startTime = Date.now();
 
         const startMatchSearch = async () => {
-            // 1. CLEAR STALE GHOSTS: Delete any existing queue entries for this user first
             try {
                 const staleQ = query(collection(db, "matchQueue"), where("userId", "==", user.uid));
                 const staleSnap = await getDocs(staleQ);
-                for (const d of staleSnap.docs) {
-                    await deleteDoc(doc(db, "matchQueue", d.id)).catch(() => { });
-                }
+                for (const d of staleSnap.docs) { await deleteDoc(doc(db, "matchQueue", d.id)).catch(() => { }); }
             } catch (e) { }
 
             const myEntry = {
                 userId: user.uid,
                 name: profile?.name || "Student",
                 college: profile?.college || "Verified College",
+                branch: profile?.branch || "Unknown",
                 interests: profile?.interests || [],
+                karma: profile?.karma || 100,
                 mode,
                 status: "searching",
                 createdAt: serverTimestamp()
@@ -143,7 +207,6 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
             myUnsub = onSnapshot(doc(db, "matchQueue", qRef.id), (snap) => {
                 const data = snap.data();
-                // Treat document deletion or 'disconnected' status as a skip
                 if (!snap.exists() || (data && data.status === "disconnected")) {
                     handleNext();
                     return;
@@ -151,24 +214,30 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 if (data && data.status === "matched" && data.matchedWith && isSearching && !isConnecting.current) {
                     isConnecting.current = true;
                     partnerDocIdRef.current = data.partnerDocId;
-                    startWebRTC(data.matchedWith, data.matchedWithData, false, data.callId);
+                    setTimeout(() => {
+                        startWebRTC(data.matchedWith, data.matchedWithData, false, data.callId);
+                    }, 1000);
                 }
             });
 
             const searchForPeers = async () => {
                 if (!isSearching || isConnecting.current) return;
-                const q = query(collection(db, "matchQueue"), where("status", "==", "searching"), orderBy("createdAt", "asc"), limit(10));
+                const searchAge = (Date.now() - startTime) / 1000;
+                const q = query(collection(db, "matchQueue"), where("status", "==", "searching"), limit(20));
                 const snap = await getDocs(q);
                 const others = snap.docs.filter(d => d.id !== qRef.id && d.data().userId !== user.uid);
-                if (others.length > 0) {
-                    const bestMatch = others[0];
-                    const bestData = bestMatch.data();
 
-                    // DETERMINISTIC TIE-BREAKER:
-                    // Both users will likely see each other in the searching queue.
-                    // Only the user with the lexicographically SMALLER UID is allowed to initiate.
-                    // The other user will wait to be matched by the one with the smaller UID.
-                    if (user.uid < bestData.userId) {
+                if (others.length > 0) {
+                    const scoredPeers = others.map(doc => ({
+                        id: doc.id,
+                        data: doc.data(),
+                        score: calculateCompatibility(myEntry, doc.data(), searchAge)
+                    })).sort((a, b) => b.score - a.score);
+
+                    const bestMatch = scoredPeers[0];
+                    const threshold = searchAge < 10 ? 60 : (searchAge < 20 ? 40 : 10);
+
+                    if (bestMatch.score >= threshold && user.uid < bestMatch.data.userId) {
                         const callId = [qRef.id, bestMatch.id].sort().join("_");
                         try {
                             isConnecting.current = true;
@@ -181,87 +250,28 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                             });
                             await updateDoc(doc(db, "matchQueue", qRef.id), {
                                 status: "matched",
-                                matchedWith: bestData.userId,
-                                matchedWithData: bestData,
+                                matchedWith: bestMatch.data.userId,
+                                matchedWithData: bestMatch.data,
                                 partnerDocId: bestMatch.id,
                                 callId
                             });
                             partnerDocIdRef.current = bestMatch.id;
-                            startWebRTC(bestData.userId, bestData, true, callId);
-                        } catch (e) {
-                            isConnecting.current = false;
-                        }
+                            startWebRTC(bestMatch.data.userId, bestMatch.data, true, callId);
+                        } catch (e) { isConnecting.current = false; }
                     }
                 }
             };
-            searchInterval = setInterval(searchForPeers, 3000);
+            searchInterval = setInterval(searchForPeers, 2500);
         };
-
-        const startWebRTC = async (pId, pData, isCaller, callId) => {
-            setCurrentCallId(callId);
-            currentCallIdRef.current = callId;
-            setIsSearching(false);
-            setPartner(pData);
-            setSafetyBlur(true);
-            setTimeout(() => setSafetyBlur(false), 3000);
-            setMessages([{ id: "sys", text: `Connected with ${pData.name}. Peer channel ready.`, sender: "system" }]);
-
-            const peer = new RTCPeerConnection(servers);
-            pc.current = peer;
-            if (streamRef.current) streamRef.current.getTracks().forEach(t => peer.addTrack(t, streamRef.current));
-
-            peer.ontrack = (e) => {
-                if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0];
-            };
-
-            const callDoc = doc(db, "calls", callId);
-            peer.onicecandidate = (e) => {
-                if (e.candidate) addDoc(collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON()).catch(() => { });
-            };
-
-            if (isCaller) {
-                const offer = await peer.createOffer();
-                await peer.setLocalDescription(offer);
-                await setDoc(callDoc, { offer: { sdp: offer.sdp, type: offer.type } });
-                onSnapshot(callDoc, async (s) => {
-                    const d = s.data();
-                    if (d?.answer && peer.signalingState === "have-local-offer") {
-                        await peer.setRemoteDescription(new RTCSessionDescription(d.answer));
-                    }
-                });
-                onSnapshot(collection(callDoc, "calleeCandidates"), (s) => {
-                    s.docChanges().forEach(async (c) => {
-                        if (c.type === "added") await peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
-                    });
-                });
-            } else {
-                let sdpSet = false;
-                onSnapshot(callDoc, async (s) => {
-                    const d = s.data();
-                    if (d?.offer && !sdpSet) {
-                        sdpSet = true;
-                        await peer.setRemoteDescription(new RTCSessionDescription(d.offer));
-                        const ans = await peer.createAnswer();
-                        await peer.setLocalDescription(ans);
-                        await updateDoc(callDoc, { answer: { sdp: ans.sdp, type: ans.type } });
-                    }
-                });
-                onSnapshot(collection(callDoc, "callerCandidates"), (s) => {
-                    s.docChanges().forEach(async (c) => {
-                        if (c.type === "added") await peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
-                    });
-                });
-            }
-        };
-
         startMatchSearch();
-        return () => { if (myUnsub) myUnsub(); clearInterval(searchInterval); };
+        return () => {
+            if (myUnsub) myUnsub();
+            if (searchInterval) clearInterval(searchInterval);
+        };
     }, [user, isSearching]);
 
     useEffect(() => {
         if (!currentCallId || !user) return;
-
-        // 1. Listen for messages
         const msgQ = query(collection(db, "calls", currentCallId, "messages"), orderBy("createdAt", "asc"));
         const msgUnsub = onSnapshot(msgQ, (snap) => {
             const msgs = snap.docs.map(d => ({
@@ -272,7 +282,6 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             setMessages(prev => [...prev.filter(m => m.sender === "system"), ...msgs]);
         });
 
-        // 2. Listen for remote termination (Admin or Peer)
         const matchUnsub = onSnapshot(doc(db, "matchQueue", queueDocRef.current), (snap) => {
             if (snap.exists() && snap.data().status === "disconnected") {
                 handleNext();
@@ -293,16 +302,6 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         await addDoc(collection(db, "calls", currentCallId, "messages"), { text: txt, senderId: user.uid, createdAt: serverTimestamp() }).catch(() => { });
     };
 
-    const handleNext = () => {
-        cleanupQueue();
-        setIsSearching(true);
-        setPartner(null);
-        setCurrentCallId(null);
-        setMessages([]);
-        setChatTime(0);
-        setSafetyBlur(true);
-    };
-
     useEffect(() => {
         const t = setInterval(() => { if (!isSearching) setChatTime(v => v + 1); }, 1000);
         return () => clearInterval(t);
@@ -312,7 +311,6 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
     return (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden" }}>
-            {/* Grain Overlay */}
             <div style={{
                 position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, opacity: 0.03,
                 backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
