@@ -129,32 +129,21 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         setIsSearching(false);
         setPartner(pData);
         setSafetyBlur(true);
-        setTimeout(() => setSafetyBlur(false), 3000);
-        setMessages([{ id: "sys", text: `Connected with ${pData.name}. Peer channel ready.`, sender: "system" }]);
+        setTimeout(() => setSafetyBlur(false), 1500);
+        setMessages([{ id: "sys", text: `Connected with ${pData.name}. Secure channel established.`, sender: "system" }]);
 
         const peer = new RTCPeerConnection(servers);
         pc.current = peer;
         if (streamRef.current) streamRef.current.getTracks().forEach(t => peer.addTrack(t, streamRef.current));
 
         peer.ontrack = (e) => {
-            console.log("WebRTC: Received Remote Track", e.track.kind);
-            if (remoteVideoRef.current) {
-                if (remoteVideoRef.current.srcObject) {
-                    // Track already exists, just add new track to stream if needed
-                    const stream = remoteVideoRef.current.srcObject;
-                    if (!stream.getTracks().includes(e.track)) {
-                        stream.addTrack(e.track);
-                    }
-                } else {
-                    // Create new stream with the track
-                    const stream = e.streams[0] || new MediaStream([e.track]);
+            console.log("WebRTC: Remote track received:", e.track.kind);
+            if (remoteVideoRef.current && e.streams && e.streams[0]) {
+                const stream = e.streams[0];
+                if (remoteVideoRef.current.srcObject !== stream) {
                     remoteVideoRef.current.srcObject = stream;
+                    console.log("WebRTC: Remote stream attached");
                 }
-
-                // Final push to ensure it plays
-                setTimeout(() => {
-                    remoteVideoRef.current?.play().catch(err => console.error("Video play failed:", err));
-                }, 500);
             }
         };
 
@@ -371,12 +360,13 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 )}
 
                 <div className="video-grid" style={{ flex: 1, gap: "1px", background: "#1a1a1a" }}>
-                    <div className="remote-video-wrap" style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                    <div className="remote-video-wrap" style={{ position: "relative", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                         <video
+                            key="remote-video-el"
                             ref={remoteVideoRef}
                             autoPlay
                             playsInline
-                            style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", background: "#000" }}
                         />
                         {/* CC Watermark - Remote */}
                         {!isSearching && (
@@ -384,32 +374,39 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                                 position: "absolute", top: "20px", right: "20px",
                                 fontWeight: 900, fontSize: "14px", border: "1.5px solid rgba(255,255,255,0.4)",
                                 padding: "4px 6px", transform: "rotate(-5deg)", color: "rgba(255,255,255,0.6)",
-                                background: "rgba(0,0,0,0.2)", backdropFilter: "blur(2px)",
+                                background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)",
                                 userSelect: "none", zIndex: 60, pointerEvents: "none", borderRadius: "4px"
                             }}>CC</div>
                         )}
                         {isSearching && (
-                            <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: "center", gap: "15px" }}>
+                            <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: "center", gap: "15px", zIndex: 10 }}>
                                 <div style={{ width: "50px", height: "1px", background: "#8b5cf6", animation: "pulse 1.5s infinite" }} />
                                 <span style={{ color: "#8b5cf6", letterSpacing: "5px", fontWeight: 800, fontSize: "10px", fontFamily: "'JetBrains Mono', monospace" }}>FINDING PEER...</span>
                             </div>
                         )}
                         {!isSearching && safetyBlur && (
-                            <div style={{ position: "absolute", inset: 0, background: "rgba(5,5,5,0.95)", backdropFilter: "blur(60px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#8b5cf6", gap: "15px", zIndex: 50 }}>
+                            <div style={{ position: "absolute", inset: 0, background: "rgba(5,5,5,0.85)", backdropFilter: "blur(40px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#8b5cf6", gap: "15px", zIndex: 50 }}>
                                 <Icons.Shield />
-                                <span style={{ fontSize: "10px", letterSpacing: "3px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace" }}>SAFETY SCAN IN PROGRESS...</span>
+                                <span style={{ fontSize: "10px", letterSpacing: "3px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace" }}>ENCRYPTING_SIGNAL...</span>
                             </div>
                         )}
                     </div>
 
-                    <div className="local-video-wrap" style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                        <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", filter: isCameraOff ? "brightness(0)" : "none" }} />
+                    <div className="local-video-wrap" style={{ position: "relative", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                        <video
+                            key="local-video-el"
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", filter: isCameraOff ? "brightness(0)" : "none", background: "#000" }}
+                        />
 
                         {/* CC Watermark - Local */}
                         <div className="cc-watermark" style={{
                             position: "absolute", top: "20px", left: "20px",
                             fontWeight: 900, fontSize: "12px", border: "1px solid rgba(255,255,255,0.2)",
-                            padding: "3px 5px", transform: "rotate(-5deg)", color: "rgba(255,255,255,0.3)",
+                            padding: "3px 5px", transform: "rotate(-5deg)", color: "rgba(255,255,255,0.4)",
                             userSelect: "none", zIndex: 60, pointerEvents: "none", borderRadius: "3px"
                         }}>CC</div>
 

@@ -120,7 +120,7 @@ export default function AppShell() {
                 <header className="mobile-header" style={{
                     position: "fixed", top: 0, left: 0, right: 0, height: "60px",
                     background: "rgba(5,5,5,0.8)", backdropFilter: "blur(10px)",
-                    borderBottom: "1px solid #111", zcallIndex: 100, display: "none",
+                    borderBottom: "1px solid #111", zIndex: 100, display: "none",
                     alignItems: "center", padding: "0 20px"
                 }}>
                     <div style={{ fontWeight: 900, fontSize: "16px", letterSpacing: "2px" }}>CAMPUSCONNECT</div>
