@@ -189,6 +189,7 @@ export default function SignupPage() {
                         createdAt: serverTimestamp(),
                         bio: "",
                         interests: [],
+                        karma: 100,
                         isOnline: true,
                     });
                     console.log("Firestore profile created successfully.");

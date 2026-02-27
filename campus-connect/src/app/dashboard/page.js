@@ -499,6 +499,7 @@ export default function DashboardPage() {
               { label: "Students Online", value: onlineCount.toLocaleString(), color: "#e0e0e0" },
               { label: "Active Matches", value: activeMatches.toLocaleString(), color: "#8b5cf6" },
               { label: "Total Users", value: totalUsers.toLocaleString(), color: "#888888" },
+              { label: "Campus Karma", value: profile?.karma || 100, color: "#facc15" },
               { label: "Your Status", value: "Active", color: "#4ade80", showCheck: true },
             ].map((stat, i) => (
               <div key={stat.label} style={{
