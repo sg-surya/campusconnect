@@ -181,6 +181,23 @@ export default function DashboardView({ user, profile, onStartMatch }) {
                     ))}
                 </div>
 
+                <div style={{ marginBottom: "60px" }}>
+                    <div style={{ fontSize: "10px", color: "#444", borderBottom: "1px solid #1a1a1a", paddingBottom: "16px", marginBottom: "30px", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "2px" }}>COMMUNITY_SUPPORT</div>
+                    <div style={{ background: "rgba(139,92,246,0.03)", border: "1px solid rgba(139,92,246,0.1)", padding: "20px", borderRadius: "2px" }}>
+                        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5, marginBottom: "15px" }}>Need help? Request your institution or report an issue on our official server.</p>
+                        <a href="https://discord.gg/zNUtGNNmRG" target="_blank" rel="noopener noreferrer" style={{
+                            display: "block", textAlign: "center", background: "#8b5cf6", color: "#fff", padding: "10px",
+                            fontSize: "10px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase",
+                            letterSpacing: "1px", textDecoration: "none", transition: "0.3s",
+                            clipPath: "polygon(5% 0, 100% 0, 100% 80%, 95% 100%, 0 100%, 0 20%)"
+                        }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; }}>
+                            Join Official Discord
+                        </a>
+                    </div>
+                </div>
+
                 <div style={{ marginTop: "auto", padding: "25px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.03)", fontFamily: "'JetBrains Mono', monospace", fontSize: "10px" }}>
                     <div style={{ color: "#8b5cf6", marginBottom: "8px" }}>› STATUS: {statusLine.toUpperCase()}</div>
                     <div style={{ color: "#444" }}>› SYSTEM: {matchLine.toUpperCase()}</div>

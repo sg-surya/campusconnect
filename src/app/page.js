@@ -62,7 +62,7 @@ export default function LandingPage() {
     return () => { window.removeEventListener("mousemove", move); io.disconnect(); };
   }, []);
 
-  const navItems = ["Discover", "Features", "Modes", "Safety"];
+  const navItems = ["Discover", "Features", "Modes", "Safety", "Support"];
 
   const Icons = {
     Globe: ({ size = 24, color = "currentColor" }) => (
@@ -79,6 +79,9 @@ export default function LandingPage() {
     ),
     Shield: ({ size = 24, color = "currentColor" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+    ),
+    Discord: ({ size = 20, color = "currentColor" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 13a1 1 0 1 0 2 0 1 1 0 0 0-2 0zm6 0a1 1 0 1 0 2 0 1 1 0 0 0-2 0z" /><path d="M10.19 2.5a1 1 0 0 0-.69.29L7.15 5.1a1 1 0 0 0-.29.69v1.44a11 11 0 0 0-4.47 5.77 1 1 0 0 0 .54 1.14l2.58 1.15.22.13a1 1 0 0 0 .58-.4l.65-.96c.21-.31.32-.68.32-1.06V11a8 8 0 0 1 10.32-3.41 1 1 0 0 0 1.25-.4l1.32-2.14a1 1 0 0 0-.29-1.29l-3.32-2a1 1 0 0 0-.69-.29H10.19z" /></svg>
     )
   };
 
@@ -163,13 +166,16 @@ export default function LandingPage() {
           <div style={{ fontWeight: 900, fontSize: "22px", letterSpacing: "-2px", border: "2px solid #e0e0e0", padding: "4px 6px", transform: "rotate(-5deg)", marginBottom: "50px", userSelect: "none" }}>CC</div>
           <nav style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             {navItems.map((item, i) => (
-              <a key={item} href={`#${item.toLowerCase()}`} style={{
-                margin: "18px 0", writingMode: "vertical-rl", textTransform: "uppercase",
-                fontFamily: "'JetBrains Mono', monospace", fontSize: "9px", letterSpacing: "2px",
-                color: "#666", textDecoration: "none", transition: "color 0.3s",
-              }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#e0e0e0")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
+              <a key={item} href={item === "Support" ? "https://discord.gg/zNUtGNNmRG" : `#${item.toLowerCase()}`}
+                target={item === "Support" ? "_blank" : "_self"}
+                rel={item === "Support" ? "noopener noreferrer" : ""}
+                style={{
+                  margin: "18px 0", writingMode: "vertical-rl", textTransform: "uppercase",
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: "9px", letterSpacing: "2px",
+                  color: item === "Support" ? "#8b5cf6" : "#666", textDecoration: "none", transition: "all 0.3s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = item === "Support" ? "#a78bfa" : "#e0e0e0")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = item === "Support" ? "#8b5cf6" : "#666")}
               >{item}</a>
             ))}
           </nav>
@@ -382,25 +388,73 @@ export default function LandingPage() {
                   { title: "Indian Institutes of Technology", prefix: "IIT", domains: ["iitb", "iitd", "iitk", "iitm", "iitkgp", "iitr", "iitg", "iith", "iitj", "iitgn", "iitp", "iitbbs", "iitindore", "iitmandi", "iitrpr", "iitv", "iitbhilai", "iitgoa", "iitpkd", "iittp", "iitdh", "iitjammu", "iitbhw"] },
                   { title: "National Institutes of Technology", prefix: "NIT", domains: ["nitw", "nitt", "nitk", "nitrkl", "nitc", "vnit", "nitjsr", "nitp", "nitkurukshetra", "nits", "nitdgp", "nithamirpur", "nitrr", "nitmz", "nitmanipur", "nitm", "nitnagaland", "nitpy", "nitsikkim", "nitap", "nitdelhi", "nitgoa", "nituk", "nith"] },
                   { title: "IIITs & BITS", prefix: "Specialty", domains: ["iiit", "iiitd", "iiitb", "iiita", "iiitdmj", "iiitdm", "iiitg", "iiitkota", "iiitn", "iiitp", "iiitvadodara", "iiits", "iiitk", "bits-pilani", "bits-hyderabad", "bits-goa"] },
-                  { title: "Major Private & Central", prefix: "University", domains: ["vit", "manipal", "srmist", "thapar", "amity", "lpu", "sharda", "kiit", "du", "jnu", "bhu", "uohyd", "annauniv", "amu", "mu", "osmania", "aiims"] }
-                ].map((group) => (
-                  <div key={group.title} style={{ background: "#0a0a0a", padding: "30px" }}>
-                    <h4 style={{ fontSize: "11px", color: "#8b5cf6", fontWeight: 800, letterSpacing: "2px", marginBottom: "20px", textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace" }}>{group.title}</h4>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                      {group.domains.map(dom => (
-                        <div key={dom} style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", fontFamily: "'JetBrains Mono', monospace", padding: "8px", border: "1px solid rgba(255,255,255,0.02)", background: "rgba(255,255,255,0.01)" }}>
-                          {dom.toUpperCase()}
+                  { title: "Major Private & Central", prefix: "University", domains: ["vit", "manipal", "srmist", "thapar", "amity", "lpu", "sharda", "kiit", "du", "jnu", "bhu", "uohyd", "annauniv", "amu", "mu", "osmania", "aiims"] },
+                  { isCTA: true }
+                ].map((group) => {
+                  if (group.isCTA) {
+                    return (
+                      <div key="discord-cta" style={{
+                        gridColumn: "span 2",
+                        background: "linear-gradient(135deg, #5865F2 0%, #8b5cf6 100%)",
+                        padding: "40px", display: "flex", flexDirection: "column",
+                        justifyContent: "center", alignItems: "center", textAlign: "center",
+                        position: "relative", overflow: "hidden"
+                      }}>
+                        {/* Decorative Background Icon */}
+                        <div style={{ position: "absolute", right: "-20px", bottom: "-20px", opacity: 0.1, transform: "rotate(-15deg)" }}>
+                          <Icons.Discord size={200} />
                         </div>
-                      ))}
+
+                        <h4 style={{ fontSize: "2rem", fontWeight: 900, color: "#fff", textTransform: "uppercase", letterSpacing: "-1.5px", marginBottom: "15px", position: "relative" }}>Join the Hub.</h4>
+                        <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.8)", marginBottom: "30px", maxWidth: "240px", lineHeight: 1.5, fontFamily: "'JetBrains Mono', monospace" }}>
+                          GET REAL-TIME SUPPORT, SUGGEST COLLEGES, AND MEET THE COMMUNITY.
+                        </p>
+                        <a href="https://discord.gg/zNUtGNNmRG" target="_blank" rel="noopener noreferrer" style={{
+                          background: "#fff", color: "#5865F2", padding: "14px 30px", fontSize: "11px", fontWeight: 900,
+                          textTransform: "uppercase", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace",
+                          textDecoration: "none", borderRadius: "2px", boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                          transition: "all 0.3s"
+                        }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 15px 35px rgba(0,0,0,0.3)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }}
+                        >
+                          JOIN DISCORD →
+                        </a>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={group.title} style={{ background: "#0a0a0a", padding: "30px" }}>
+                      <h4 style={{ fontSize: "11px", color: "#8b5cf6", fontWeight: 800, letterSpacing: "2px", marginBottom: "20px", textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace" }}>{group.title}</h4>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                        {group.domains.map(dom => (
+                          <div key={dom} style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", fontFamily: "'JetBrains Mono', monospace", padding: "8px", border: "1px solid rgba(255,255,255,0.02)", background: "rgba(255,255,255,0.01)" }}>
+                            {dom.toUpperCase()}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              <div style={{ marginTop: "40px", padding: "20px", background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.2)", textAlign: "center", borderRadius: "4px" }}>
-                <span style={{ fontSize: "11px", color: "#8b5cf6", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
-                  › Don&apos;t see your college? We are adding 50+ new institutions every month. Contact support to request yours.
-                </span>
+              <div id="support" style={{ marginTop: "40px", padding: "30px", background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.2)", textAlign: "center", borderRadius: "8px", position: "relative", overflow: "hidden" }}>
+                <div style={{ marginBottom: "15px" }}>
+                  <span style={{ fontSize: "11px", color: "#8b5cf6", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+                    › Don&apos;t see your college? We are adding 50+ new institutions every month.
+                  </span>
+                </div>
+                <a href="https://discord.gg/zNUtGNNmRG" target="_blank" rel="noopener noreferrer" style={{
+                  display: "inline-flex", alignItems: "center", gap: "10px", background: "#8b5cf6", color: "#fff",
+                  padding: "12px 24px", borderRadius: "4px", fontSize: "12px", fontWeight: 900, textTransform: "uppercase",
+                  fontFamily: "'JetBrains Mono', monospace", letterSpacing: "1px", transition: "all 0.3s",
+                  clipPath: "polygon(5% 0, 100% 0, 100% 70%, 95% 100%, 0 100%, 0 30%)"
+                }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; e.currentTarget.style.transform = "scale(1.05)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.transform = "scale(1)"; }}
+                >
+                  Request Institution via Discord
+                </a>
               </div>
             </div>
           </section>
@@ -441,21 +495,22 @@ export default function LandingPage() {
                     <Link href="#features">Features</Link>
                     <Link href="#modes">Modes</Link>
                     <Link href="#safety">Safety</Link>
+                    <a href="https://discord.gg/zNUtGNNmRG" target="_blank" rel="noopener noreferrer" style={{ color: "#8b5cf6" }}>Support (Discord)</a>
                   </div>
                 </div>
                 <div>
                   <h5 style={{ fontSize: "10px", color: "#8b5cf6", letterSpacing: "2px", marginBottom: "20px" }}>LEGAL</h5>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#666" }}>
-                    <span>Privacy Policy</span>
-                    <span>Terms of Use</span>
-                    <span>Guidelines</span>
+                    <Link href="/privacy">Privacy Policy</Link>
+                    <Link href="/terms">Terms of Use</Link>
+                    <Link href="/guidelines">Community Guidelines</Link>
                   </div>
                 </div>
               </div>
             </div>
             <div style={{ maxWidth: "1200px", margin: "60px auto 0", borderTop: "1px solid #0f0f0f", paddingTop: "30px", fontSize: "10px", color: "#333", display: "flex", justifyContent: "space-between" }}>
               <span>© 2026 CAMPUSCONNECT. ALL RIGHTS RESERVED.</span>
-              <span>BUILT FOR STUDENTS. BY STUDENTS.</span>
+              <span style={{ letterSpacing: "1px" }}>BUILT BY <span style={{ color: "#8b5cf6", fontWeight: 800 }}>VASUDEV AI</span> & THE COMMUNITY.</span>
             </div>
           </footer>
         </main>
