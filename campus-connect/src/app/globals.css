@@ -1,0 +1,170 @@
+/* ═════════════════════════════════════════════════════════
+   CampusConnect — Global Styles
+   ═════════════════════════════════════════════════════════ */
+
+:root {
+  --monolith-bg: #0a0a0b;
+  --etch-light: rgba(255, 255, 255, 0.08);
+  --etch-dark: rgba(0, 0, 0, 0.6);
+  --accent-purple: #8b5cf6;
+  --graphite-gray: #1a1a1c;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #0a0a0a;
+  color: #e0e0e0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ── Landing Page Styles ─────────────── */
+
+.mono-font {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.topo-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  mask-image: linear-gradient(to bottom, black, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, black, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg width='800' height='800' viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 100 Q 200 50 400 100 T 800 100 M0 200 Q 200 150 400 200 T 800 200 M0 300 Q 200 250 400 300 T 800 300 M0 400 Q 200 350 400 400 T 800 400 M0 500 Q 200 450 400 500 T 800 500' stroke='%23ffffff' fill='none' stroke-width='0.5'/%3E%3C/svg%3E");
+}
+
+.etched-slab {
+  background: var(--graphite-gray);
+  border: 1px solid var(--etch-light);
+  box-shadow:
+    inset 1px 1px 0px var(--etch-light),
+    inset -1px -1px 0px var(--etch-dark),
+    10px 10px 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.4s ease;
+}
+
+.etched-slab:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    inset 1.5px 1.5px 0px rgba(255, 255, 255, 0.12),
+    inset -1px -1px 0px var(--etch-dark),
+    15px 15px 40px rgba(0, 0, 0, 0.6);
+}
+
+.inset-etch {
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: inset 2px 2px 5px var(--etch-dark), inset -1px -1px 2px var(--etch-light);
+  border-radius: 2px;
+}
+
+.btn-monolith {
+  background: white;
+  color: black;
+  font-weight: 700;
+  padding: 1rem 2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+}
+
+.btn-monolith:hover {
+  transform: scale(1.05);
+  background: var(--accent-purple);
+  color: white;
+}
+
+.grid-mesh {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.landing-nav-link {
+  position: relative;
+  padding: 0.5rem 1rem;
+  color: #999;
+  transition: color 0.3s ease;
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.landing-nav-link:hover {
+  color: white;
+}
+
+.landing-badge {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: var(--accent-purple);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.landing-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: landingReveal 0.8s forwards;
+}
+
+@keyframes landingReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Scrollbar ─────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #242424;
+}
