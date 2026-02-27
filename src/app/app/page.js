@@ -25,8 +25,27 @@ export default function AppShell() {
     useEffect(() => {
         if (!user) return;
         const userRef = doc(db, "users", user.uid);
+
+        // 1. Mark as online
         updateDoc(userRef, { isOnline: true }).catch(() => { });
+
+        // 2. ABSOLUTE ENFORCEMENT: Listen for Admin Actions
+        const unsub = onSnapshot(userRef, (snap) => {
+            if (!snap.exists()) {
+                // User deleted by admin
+                handleLogout();
+                return;
+            }
+            const data = snap.data();
+            if (data.isOnline === false) {
+                // Session killed by admin
+                handleLogout();
+                alert("SESSION_TERMINATED: Your access has been revoked by the Super Admin.");
+            }
+        });
+
         return () => {
+            unsub();
             updateDoc(userRef, { isOnline: false }).catch(() => { });
         };
     }, [user]);
@@ -41,6 +60,16 @@ export default function AppShell() {
         await logout();
         router.replace("/");
     };
+
+    const [broadcast, setBroadcast] = useState(null);
+
+    useEffect(() => {
+        const unsub = onSnapshot(doc(db, "system_config", "broadcast"), (snap) => {
+            if (snap.exists()) setBroadcast(snap.data());
+            else setBroadcast(null);
+        });
+        return () => unsub();
+    }, []);
 
     if (loading || !user) {
         return (
@@ -65,6 +94,23 @@ export default function AppShell() {
             background: "#050505",
             overflow: "hidden"
         }}>
+            {/* Broadcast Overlay */}
+            {broadcast && broadcast.active && (
+                <div style={{
+                    position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)",
+                    zIndex: 2000, background: "rgba(139,92,246,0.95)", color: "#fff",
+                    padding: "15px 40px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.2)",
+                    backdropFilter: "blur(10px)", boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
+                    display: "flex", alignItems: "center", gap: "20px", width: "max-content", maxWidth: "80vw"
+                }}>
+                    <div style={{ fontSize: "10px", fontWeight: 900, background: "#000", padding: "4px 8px", borderRadius: "4px" }}>BROADCAST</div>
+                    <div style={{ fontWeight: 700, fontSize: "14px" }}>{broadcast.message}</div>
+                    <button
+                        onClick={() => setBroadcast(null)}
+                        style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontWeight: 900 }}
+                    >×</button>
+                </div>
+            )}
             {/* Minimal Sidebar for view switching */}
             <aside style={{
                 borderRight: "1px solid #1a1a1a",

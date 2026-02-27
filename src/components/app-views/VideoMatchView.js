@@ -197,6 +197,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 branch: profile?.branch || "Unknown",
                 interests: profile?.interests || [],
                 karma: profile?.karma || 100,
+                isBanned: profile?.isBanned || false,
                 mode,
                 status: "searching",
                 createdAt: serverTimestamp()
@@ -222,10 +223,19 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
             const searchForPeers = async () => {
                 if (!isSearching || isConnecting.current) return;
+
+                // SHADOW BAN ENFORCEMENT
+                if (profile?.isBanned) return;
+
                 const searchAge = (Date.now() - startTime) / 1000;
                 const q = query(collection(db, "matchQueue"), where("status", "==", "searching"), limit(20));
                 const snap = await getDocs(q);
-                const others = snap.docs.filter(d => d.id !== qRef.id && d.data().userId !== user.uid);
+
+                // Filter out banned nodes and self
+                const others = snap.docs.filter(d => {
+                    const data = d.data();
+                    return d.id !== qRef.id && data.userId !== user.uid && !data.isBanned;
+                });
 
                 if (others.length > 0) {
                     const scoredPeers = others.map(doc => ({
