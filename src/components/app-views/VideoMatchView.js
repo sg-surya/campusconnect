@@ -251,8 +251,10 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
     useEffect(() => {
         if (!currentCallId || !user) return;
-        const q = query(collection(db, "calls", currentCallId, "messages"), orderBy("createdAt", "asc"));
-        return onSnapshot(q, (snap) => {
+
+        // 1. Listen for messages
+        const msgQ = query(collection(db, "calls", currentCallId, "messages"), orderBy("createdAt", "asc"));
+        const msgUnsub = onSnapshot(msgQ, (snap) => {
             const msgs = snap.docs.map(d => ({
                 id: d.id, ...d.data(),
                 timestamp: d.data().createdAt?.toMillis() || Date.now(),
@@ -260,6 +262,18 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             })).sort((a, b) => a.timestamp - b.timestamp);
             setMessages(prev => [...prev.filter(m => m.sender === "system"), ...msgs]);
         });
+
+        // 2. Listen for remote termination (Admin or Peer)
+        const matchUnsub = onSnapshot(doc(db, "matchQueue", queueDocRef.current), (snap) => {
+            if (snap.exists() && snap.data().status === "disconnected") {
+                handleNext();
+            }
+        });
+
+        return () => {
+            msgUnsub();
+            matchUnsub();
+        };
     }, [currentCallId, user]);
 
     const sendMessage = async (e) => {
