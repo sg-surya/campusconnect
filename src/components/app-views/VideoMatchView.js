@@ -320,10 +320,10 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
     return (
-        <div className="video-match-container" style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden" }}>
+        <div className="video-match-container" style={{ height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden" }}>
             {/* Mobile View Title */}
             <div className="mobile-title" style={{ display: "none", position: "fixed", top: 0, left: 0, right: 0, height: "60px", background: "rgba(10,10,10,0.8)", backdropFilter: "blur(20px)", zIndex: 100, alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#8b5cf6", letterSpacing: "2px" }}>{matchType || "MATCH_ACTIVE"}</div>
+                <div style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#8b5cf6", letterSpacing: "2px", fontWeight: 900 }}>{mode || "MATCHING"} // ACTIVE_SESSION</div>
             </div>
             <div style={{
                 position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, opacity: 0.03,
@@ -349,8 +349,8 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     </div>
                 )}
 
-                <div className="video-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", flex: 1, gap: "1px", background: "#1a1a1a" }}>
-                    <div style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                <div className="video-grid" style={{ flex: 1, gap: "1px", background: "#1a1a1a" }}>
+                    <div className="remote-video-wrap" style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                         <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
                         {isSearching && (
                             <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: "center", gap: "15px" }}>
@@ -366,7 +366,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         )}
                     </div>
 
-                    <div style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                    <div className="local-video-wrap" style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                         <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", filter: isCameraOff ? "brightness(0)" : "none" }} />
                         <div style={{ position: "absolute", bottom: "20px", right: "20px", background: "rgba(0,0,0,0.5)", padding: "5px 10px", fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#666", border: "1px solid rgba(255,255,255,0.1)" }}>
                             LIVE_SIGNAL
@@ -437,18 +437,25 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     />
                 </form>
             </aside>
-
             <style jsx>{`
+                .video-match-container {
+                    display: grid;
+                    grid-template-columns: 1fr 380px;
+                }
+                .video-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                }
+
                 @keyframes pulse {
                     0% { transform: scaleX(0.5); opacity: 0.2; }
                     50% { transform: scaleX(2); opacity: 1; }
                     100% { transform: scaleX(0.5); opacity: 0.2; }
                 }
 
-                @media (max-width: 1024px) {
+                @media (max-width: 768px) {
                     .video-match-container {
                         grid-template-columns: 1fr !important;
-                        grid-template-rows: 1fr !important;
                         padding-top: 60px !important;
                         padding-bottom: 80px !important;
                     }
@@ -458,52 +465,45 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     .video-grid {
                         grid-template-columns: 1fr !important;
                         grid-template-rows: 1fr 1fr !important;
-                        gap: 15px !important;
-                        padding: 15px !important;
-                        background: transparent !important;
+                        gap: 2px !important;
+                        background: #1a1a1a !important;
                     }
-                    .video-card {
-                        border-radius: 20px !important;
-                        overflow: hidden !important;
-                        border: 1px solid rgba(255,255,255,0.05) !important;
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+                    .remote-video-wrap, .local-video-wrap {
+                        height: 50% !important;
                     }
                     .chat-sidebar {
-                        position: fixed !important;
-                        bottom: 100px !important;
-                        right: 15px !important;
-                        width: 60px !important;
-                        height: 60px !important;
-                        border-radius: 30px !important;
-                        border: 1px solid #8b5cf6 !important;
-                        background: rgba(139,92,246,0.1) !important;
-                        backdrop-filter: blur(20px) !important;
-                        overflow: hidden !important;
-                        transition: 0.3s !important;
+                        display: none !important;
                     }
-                    /* Simplified controls for mobile */
                     .controls {
                         position: fixed !important;
                         bottom: 95px !important;
                         left: 50% !important;
                         transform: translateX(-50%) !important;
-                        width: auto !important;
-                        height: auto !important;
-                        background: rgba(20,20,20,0.8) !important;
+                        width: 90% !important;
+                        height: 70px !important;
+                        background: rgba(10,10,12,0.9) !important;
                         backdrop-filter: blur(20px) !important;
-                        padding: 10px 20px !important;
-                        border-radius: 40px !important;
-                        border: 1px solid rgba(255,255,255,0.05) !important;
-                        gap: 15px !important;
-                        box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+                        padding: 0 20px !important;
+                        border-radius: 20px !important;
+                        border: 1px solid rgba(255,255,255,0.08) !important;
+                        gap: 12px !important;
+                        box-shadow: 0 20px 50px rgba(0,0,0,0.8) !important;
                     }
-                    .controls button {
+                    .controls button:first-of-type {
+                        flex: 2 !important;
                         padding: 12px !important;
-                        border-radius: 50% !important;
-                        width: 50px !important;
-                        height: 50px !important;
+                        border-radius: 12px !important;
                         clip-path: none !important;
-                        font-size: 0 !important; /* Hide text, use icons only if they exist - otherwise keep simple */
+                        font-size: 11px !important;
+                    }
+                    .controls button:not(:first-of-type) {
+                        flex: 1 !important;
+                        padding: 12px !important;
+                        border-radius: 12px !important;
+                        font-size: 10px !important;
+                    }
+                    .controls div {
+                        display: none !important;
                     }
                 }
             `}</style>
