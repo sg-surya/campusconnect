@@ -213,6 +213,8 @@ export default function VideoMatchPage() {
         };
 
         const startWebRTC = async (pId, pData, isCaller, callId) => {
+            // Set call ID immediately so message sync can start
+            setCurrentCallId(callId);
             setIsSearching(false);
             setPartner(pData);
             setSafetyBlur(true);
@@ -319,9 +321,6 @@ export default function VideoMatchPage() {
                     });
                 });
             }
-
-            // Sync current call ID for message logic
-            setCurrentCallId(callId);
         };
 
         startMatchSearch();
@@ -340,14 +339,18 @@ export default function VideoMatchPage() {
         const q = query(msgsRef, orderBy("createdAt", "asc"));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const newMessages = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                sender: doc.data().senderId === user.uid ? "me" : "partner"
-            }));
+            const newMessages = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    // Use server time if available, otherwise estimate for sorting
+                    timestamp: data.createdAt?.toMillis() || Date.now(),
+                    sender: data.senderId === user.uid ? "me" : "partner"
+                };
+            }).sort((a, b) => a.timestamp - b.timestamp);
 
             setMessages(prev => {
-                // Keep system messages, but replace Firestore-backed messages
                 const systemMsgs = prev.filter(m => m.sender === "system");
                 return [...systemMsgs, ...newMessages];
             });
