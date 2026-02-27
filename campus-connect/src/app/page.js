@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { collection, getCountFromServer, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import AuthModal from "@/components/AuthModal";
 
 export default function LandingPage() {
   const gridRef = useRef(null);
@@ -12,6 +14,16 @@ export default function LandingPage() {
   const [onlineCount, setOnlineCount] = useState("...");
   const [activeMatches, setActiveMatches] = useState("...");
   const { user, loading } = useAuth();
+  const router = useRouter();
+  const [authModal, setAuthModal] = useState({ isOpen: false, mode: "login" });
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/app");
+    }
+  }, [loading, user, router]);
+
+  const openAuth = (mode) => setAuthModal({ isOpen: true, mode });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -106,6 +118,12 @@ export default function LandingPage() {
 
   return (
     <>
+      <AuthModal
+        isOpen={authModal.isOpen}
+        initialMode={authModal.mode}
+        onClose={() => setAuthModal({ ...authModal, isOpen: false })}
+        onSuccess={() => router.push("/app")}
+      />
       <div style={{
         position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999, opacity: 0.04,
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
@@ -175,26 +193,25 @@ export default function LandingPage() {
               {!loading && (
                 <>
                   {user ? (
-                    <Link href="/dashboard" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", color: "#4ade80", textDecoration: "none", textTransform: "uppercase", letterSpacing: "1px" }}>Dashboard →</Link>
+                    <Link href="/app" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", color: "#4ade80", textDecoration: "none", textTransform: "uppercase", letterSpacing: "1px" }}>Enter App →</Link>
                   ) : (
                     <>
-                      <Link href="/login" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "11px", color: "rgba(255,255,255,0.45)", textDecoration: "none", textTransform: "uppercase", letterSpacing: "1px" }}>Log In</Link>
-                      <Link href="/signup">
-                        <button style={{
-                          background: "white", color: "black", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", fontSize: "10px",
-                          textTransform: "uppercase", letterSpacing: "1px", padding: "10px 20px", border: "none", cursor: "pointer",
-                          clipPath: "polygon(8% 0, 100% 0, 100% 68%, 92% 100%, 0 100%, 0 32%)", transition: "all 0.3s",
-                        }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; }}
-                        >Get Started</button>
-                      </Link>
+                      <button onClick={() => openAuth("login")} style={{ background: "none", border: "none", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px", color: "rgba(255,255,255,0.45)", textDecoration: "none", textTransform: "uppercase", letterSpacing: "1px", cursor: "pointer" }}>Log In</button>
+                      <button onClick={() => openAuth("signup")} style={{
+                        background: "white", color: "black", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", fontSize: "10px",
+                        textTransform: "uppercase", letterSpacing: "1px", padding: "10px 20px", border: "none", cursor: "pointer",
+                        clipPath: "polygon(8% 0, 100% 0, 100% 68%, 92% 100%, 0 100%, 0 32%)", transition: "all 0.3s",
+                      }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; }}
+                      >Get Started</button>
                     </>
                   )}
                 </>
               )}
             </div>
           </header>
+
 
           {/* Hero */}
           <section id="discover" style={{ padding: "120px 80px", position: "relative" }}>
@@ -223,27 +240,27 @@ export default function LandingPage() {
                   </p>
 
                   <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
-                    <Link href={user ? "/dashboard" : "/signup"}>
-                      <button style={{
+                    <button
+                      onClick={() => user ? router.push("/app") : openAuth("signup")}
+                      style={{
                         background: "white", color: "black", fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
                         fontSize: "13px", textTransform: "uppercase", letterSpacing: "1.5px", padding: "20px 48px", border: "none", cursor: "pointer",
                         clipPath: "polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)", transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
                         boxShadow: "0 10px 30px rgba(255,255,255,0.1)"
                       }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#8b5cf6";
-                          e.currentTarget.style.color = "#fff";
-                          e.currentTarget.style.transform = "translateY(-5px)";
-                          e.currentTarget.style.boxShadow = "0 20px 40px rgba(139,92,246,0.4)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "#fff";
-                          e.currentTarget.style.color = "#000";
-                          e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = "0 10px 30px rgba(255,255,255,0.1)";
-                        }}
-                      >{user ? "Open Dashboard" : "Join the Identity"}</button>
-                    </Link>
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#8b5cf6";
+                        e.currentTarget.style.color = "#fff";
+                        e.currentTarget.style.transform = "translateY(-5px)";
+                        e.currentTarget.style.boxShadow = "0 20px 40px rgba(139,92,246,0.4)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#fff";
+                        e.currentTarget.style.color = "#000";
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "0 10px 30px rgba(255,255,255,0.1)";
+                      }}
+                    >{user ? "Open Dashboard" : "Join the Identity"}</button>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "2px", color: "rgba(255,255,255,0.3)" }}>PLATFORM_VERSION</div>

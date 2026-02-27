@@ -22,10 +22,8 @@ export default function DashboardPage() {
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login");
-    }
-  }, [authLoading, user, router]);
+    router.replace("/app");
+  }, [router]);
 
   // Set user as online and handle disconnect
   useEffect(() => {

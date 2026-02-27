@@ -16,15 +16,8 @@ export default function LoginPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const move = (e) => {
-            if (!gridRef.current) return;
-            const x = (e.clientX / window.innerWidth) * 100;
-            const y = (e.clientY / window.innerHeight) * 100;
-            gridRef.current.style.backgroundPosition = `${x * 0.1}px ${y * 0.1}px`;
-        };
-        window.addEventListener("mousemove", move);
-        return () => window.removeEventListener("mousemove", move);
-    }, []);
+        router.replace("/");
+    }, [router]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

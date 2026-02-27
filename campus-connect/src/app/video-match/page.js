@@ -16,6 +16,9 @@ const servers = {
 
 export default function VideoMatchPage() {
     const router = useRouter();
+    useEffect(() => {
+        router.replace("/app");
+    }, [router]);
     const searchParams = useSearchParams();
     const mode = searchParams.get("mode") || "GLOBAL";
     const { user, profile } = useAuth();
