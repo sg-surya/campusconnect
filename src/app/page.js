@@ -569,7 +569,7 @@ export default function LandingPage() {
             </div>
             <div style={{ maxWidth: "1200px", margin: "60px auto 0", borderTop: "1px solid #0f0f0f", paddingTop: "30px", fontSize: "10px", color: "#333", display: "flex", justifyContent: "space-between" }}>
               <span>© 2026 CAMPUSCONNECT. ALL RIGHTS RESERVED.</span>
-              <span style={{ letterSpacing: "1px" }}>BUILT BY <span style={{ color: "#8b5cf6", fontWeight: 800 }}>VASUDEV AI</span> & THE COMMUNITY.</span>
+              <span style={{ letterSpacing: "1px" }}>BUILT BY <a href="https://vasudev.online" target="_blank" rel="noopener noreferrer" style={{ color: "#8b5cf6", fontWeight: 800, textDecoration: "none" }}>VASUDEV AI</a> & THE COMMUNITY.</span>
             </div>
           </footer>
         </main>
