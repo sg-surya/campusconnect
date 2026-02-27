@@ -1,312 +1,320 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, onSnapshot, query, where, orderBy, serverTimestamp, doc } from "firebase/firestore";
 
 export default function ChatPage() {
-    const router = useRouter();
-    const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState("");
-    const [isTyping, setIsTyping] = useState(false);
-    const [chatTime, setChatTime] = useState(0);
-    const [showReport, setShowReport] = useState(false);
-    const [showIcebreakers, setShowIcebreakers] = useState(true);
-    const chatEndRef = useRef(null);
+  const router = useRouter();
+  const { user, profile } = useAuth();
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [chatTime, setChatTime] = useState(0);
+  const [showReport, setShowReport] = useState(false);
+  const [showIcebreakers, setShowIcebreakers] = useState(true);
+  const [activeChatId, setActiveChatId] = useState(null);
+  const [partnerInfo, setPartnerInfo] = useState({
+    name: "Partner",
+    college: "Verified College",
+    branch: "Student",
+    year: "2nd Year",
+    interests: ["💻 Coding", "🚀 Startups"],
+    karma: 320,
+    verified: true,
+  });
+  const chatEndRef = useRef(null);
 
-    const partner = {
-        name: "A***a",
-        college: "DTU",
-        branch: "CSE",
-        year: "2nd Year",
-        interests: ["💻 Coding", "🚀 Startups"],
-        karma: 320,
-        verified: true,
-    };
+  // Load active chat and partner from profile
+  useEffect(() => {
+    if (profile?.activeChatId) {
+      setActiveChatId(profile.activeChatId);
+    }
+    if (profile?.partnerName) {
+      setPartnerInfo(prev => ({ ...prev, name: profile.partnerName }));
+    }
+  }, [profile]);
 
-    const icebreakers = [
-        "🎯 What project are you working on right now?",
-        "🚀 If you could build any startup, what would it be?",
-        "📚 What's the best course you've taken this semester?",
-        "🎮 What do you do when you're not studying?",
-        "💡 What's one skill you wish your college taught better?",
-    ];
+  // Real-time message sync
+  useEffect(() => {
+    if (!activeChatId || !user) return;
 
-    // Chat timer
-    useEffect(() => {
-        const timer = setInterval(() => setChatTime((t) => t + 1), 1000);
-        return () => clearInterval(timer);
-    }, []);
+    const msgsRef = collection(db, "calls", activeChatId, "messages");
+    const q = query(msgsRef, orderBy("createdAt", "asc"));
 
-    // Auto scroll
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newMessages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        sender: doc.data().senderId === user.uid ? "me" : "partner",
+        time: doc.data().createdAt?.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) || "..."
+      }));
+      setMessages(newMessages);
+      if (newMessages.length > 0) setShowIcebreakers(false);
+    });
 
-    // Simulate partner response
-    const simulateResponse = () => {
-        setIsTyping(true);
-        const responses = [
-            "That's interesting! I'm working on something similar 👀",
-            "Haha, nice! What branch are you in?",
-            "Cool! Have you tried this new framework? It's amazing 🔥",
-            "Yeah, I totally get that. College life is wild 😄",
-            "We should connect on LinkedIn after this!",
-            "That's exactly what I was thinking!",
-            "No way! Same pinch 😂",
-            "What hackathons have you been to?",
-        ];
-        setTimeout(() => {
-            setIsTyping(false);
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now(),
-                    text: responses[Math.floor(Math.random() * responses.length)],
-                    sender: "partner",
-                    time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                },
-            ]);
-        }, 1500 + Math.random() * 2000);
-    };
+    return () => unsubscribe();
+  }, [activeChatId, user?.uid]);
 
-    const sendMessage = (e) => {
-        e.preventDefault();
-        if (!input.trim()) return;
+  const icebreakers = [
+    "🎯 What project are you working on right now?",
+    "🚀 If you could build any startup, what would it be?",
+    "📚 What's the best course you've taken this semester?",
+    "🎮 What do you do when you're not studying?",
+    "💡 What's one skill you wish your college taught better?",
+  ];
 
-        setMessages((prev) => [
-            ...prev,
-            {
-                id: Date.now(),
-                text: input.trim(),
-                sender: "me",
-                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            },
-        ]);
-        setInput("");
-        setShowIcebreakers(false);
-        simulateResponse();
-    };
+  // Chat timer
+  useEffect(() => {
+    const timer = setInterval(() => setChatTime((t) => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-    const sendIcebreaker = (text) => {
-        setMessages((prev) => [
-            ...prev,
-            {
-                id: Date.now(),
-                text: text,
-                sender: "me",
-                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            },
-        ]);
-        setShowIcebreakers(false);
-        simulateResponse();
-    };
+  // Auto scroll
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-    };
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!input.trim() || !activeChatId || !user) return;
 
-    return (
-        <div className="chat-layout">
-            {/* Chat Sidebar / Partner Info */}
-            <aside className="chat-sidebar">
-                <div className="cs-header">
-                    <button className="btn btn-ghost" onClick={() => router.push("/dashboard")} id="back-dashboard">
-                        ← Back
-                    </button>
+    const msgText = input.trim();
+    setInput("");
+    setShowIcebreakers(false);
+
+    try {
+      await addDoc(collection(db, "calls", activeChatId, "messages"), {
+        text: msgText,
+        senderId: user.uid,
+        createdAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error("Error sending message:", err);
+    }
+  };
+
+  const sendIcebreaker = async (text) => {
+    if (!activeChatId || !user) return;
+    setShowIcebreakers(false);
+
+    try {
+      await addDoc(collection(db, "calls", activeChatId, "messages"), {
+        text: text,
+        senderId: user.uid,
+        createdAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error("Error sending icebreaker:", err);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="chat-layout">
+      {/* Chat Sidebar / Partner Info */}
+      <aside className="chat-sidebar">
+        <div className="cs-header">
+          <button className="btn btn-ghost" onClick={() => router.push("/dashboard")} id="back-dashboard">
+            ← Back
+          </button>
+        </div>
+
+        <div className="partner-card">
+          <div className="avatar avatar-lg">
+            {partnerInfo.name[0]}
+          </div>
+          <h3 className="partner-name">{partnerInfo.name}</h3>
+          <div className="partner-college">
+            <span className="badge badge-verified">✅ Verified</span>
+            <span>{partnerInfo.college}</span>
+          </div>
+          <div className="partner-details">
+            <span>{partnerInfo.branch} · {partnerInfo.year}</span>
+          </div>
+          <div className="partner-interests">
+            {partnerInfo.interests.map((i) => (
+              <span key={i} className="tag">{i}</span>
+            ))}
+          </div>
+          <div className="partner-karma">
+            <span>⭐ {partnerInfo.karma} Karma</span>
+          </div>
+        </div>
+
+        <div className="chat-timer">
+          <span className="timer-label">Chat Duration</span>
+          <span className="timer-value">{formatTime(chatTime)}</span>
+        </div>
+
+        <div className="chat-actions">
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={() => setShowReport(true)}
+            id="report-btn"
+          >
+            🚨 Report
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => router.push("/dashboard")}
+            id="next-match"
+          >
+            ⏭️ Next Match
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => router.push("/dashboard")}
+            id="end-chat"
+          >
+            End Chat
+          </button>
+        </div>
+      </aside>
+
+      {/* Chat Area */}
+      <main className="chat-main">
+        <header className="chat-header">
+          <div className="ch-left">
+            <div className="avatar avatar-sm">{partnerInfo.name[0]}</div>
+            <div>
+              <div className="ch-name">{partnerInfo.name}</div>
+              <div className="ch-status">
+                <span className="online-dot" />
+                {isTyping ? "typing..." : "Online"}
+              </div>
+            </div>
+          </div>
+          <div className="ch-right">
+            <span className="ch-timer">{formatTime(chatTime)}</span>
+            <span className="badge badge-verified">✅</span>
+          </div>
+        </header>
+
+        {/* Messages */}
+        <div className="chat-messages" id="chat-messages">
+          <div className="system-message">
+            <div className="system-msg-content">
+              🛡️ This chat is moderated by AI for your safety.
+              <br />
+              Be respectful and follow community guidelines.
+            </div>
+          </div>
+
+          <div className="system-message">
+            <div className="system-msg-content">
+              🎉 You matched with <strong>{partnerInfo.name}</strong> from{" "}
+              <strong>{partnerInfo.college}</strong>! Say hi 👋
+            </div>
+          </div>
+
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`message ${msg.sender === "me" ? "msg-me" : "msg-partner"}`}
+            >
+              <div className="msg-bubble">
+                <p>{msg.text}</p>
+                <span className="msg-time">{msg.time}</span>
+              </div>
+            </div>
+          ))}
+
+          {isTyping && (
+            <div className="message msg-partner">
+              <div className="msg-bubble typing-bubble">
+                <div className="typing-dots">
+                  <span />
+                  <span />
+                  <span />
                 </div>
+              </div>
+            </div>
+          )}
 
-                <div className="partner-card">
-                    <div className="avatar avatar-lg">
-                        {partner.name[0]}
-                    </div>
-                    <h3 className="partner-name">{partner.name}</h3>
-                    <div className="partner-college">
-                        <span className="badge badge-verified">✅ Verified</span>
-                        <span>{partner.college}</span>
-                    </div>
-                    <div className="partner-details">
-                        <span>{partner.branch} · {partner.year}</span>
-                    </div>
-                    <div className="partner-interests">
-                        {partner.interests.map((i) => (
-                            <span key={i} className="tag">{i}</span>
-                        ))}
-                    </div>
-                    <div className="partner-karma">
-                        <span>⭐ {partner.karma} Karma</span>
-                    </div>
-                </div>
+          <div ref={chatEndRef} />
+        </div>
 
-                <div className="chat-timer">
-                    <span className="timer-label">Chat Duration</span>
-                    <span className="timer-value">{formatTime(chatTime)}</span>
-                </div>
+        {/* Icebreakers */}
+        {showIcebreakers && messages.length === 0 && (
+          <div className="icebreakers">
+            <div className="ice-header">
+              <span className="ice-icon">🧠</span>
+              <span>AI Icebreaker Suggestions</span>
+            </div>
+            <div className="ice-list">
+              {icebreakers.map((ice, i) => (
+                <button
+                  key={i}
+                  className="ice-btn"
+                  onClick={() => sendIcebreaker(ice)}
+                  id={`icebreaker-${i}`}
+                >
+                  {ice}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-                <div className="chat-actions">
-                    <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => setShowReport(true)}
-                        id="report-btn"
-                    >
-                        🚨 Report
-                    </button>
-                    <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => router.push("/dashboard")}
-                        id="next-match"
-                    >
-                        ⏭️ Next Match
-                    </button>
-                    <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => router.push("/dashboard")}
-                        id="end-chat"
-                    >
-                        End Chat
-                    </button>
-                </div>
-            </aside>
+        {/* Input */}
+        <form className="chat-input-bar" onSubmit={sendMessage}>
+          <button type="button" className="btn btn-icon btn-ghost" id="attach-btn">
+            📎
+          </button>
+          <input
+            type="text"
+            className="chat-input"
+            placeholder="Type a message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            id="chat-input"
+          />
+          <button
+            type="submit"
+            className={`btn btn-primary btn-icon send-btn ${!input.trim() ? "disabled" : ""}`}
+            disabled={!input.trim()}
+            id="send-btn"
+          >
+            →
+          </button>
+        </form>
+      </main>
 
-            {/* Chat Area */}
-            <main className="chat-main">
-                <header className="chat-header">
-                    <div className="ch-left">
-                        <div className="avatar avatar-sm">{partner.name[0]}</div>
-                        <div>
-                            <div className="ch-name">{partner.name}</div>
-                            <div className="ch-status">
-                                <span className="online-dot" />
-                                {isTyping ? "typing..." : "Online"}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="ch-right">
-                        <span className="ch-timer">{formatTime(chatTime)}</span>
-                        <span className="badge badge-verified">✅</span>
-                    </div>
-                </header>
+      {/* Report Modal */}
+      {showReport && (
+        <div className="modal-overlay" onClick={() => setShowReport(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>🚨 Report User</h3>
+            <p style={{ color: "var(--text-secondary)", margin: "0.5rem 0 1rem", fontSize: "0.9rem" }}>
+              Help us keep CampusConnect safe. Select a reason:
+            </p>
+            <div className="report-options">
+              {[
+                "Inappropriate content",
+                "Harassment or bullying",
+                "Spam or fake profile",
+                "NSFW content",
+                "Threatening behavior",
+                "Other",
+              ].map((reason) => (
+                <button key={reason} className="report-option" onClick={() => setShowReport(false)}>
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button className="btn btn-ghost" onClick={() => setShowReport(false)} style={{ marginTop: "1rem", width: "100%" }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
-                {/* Messages */}
-                <div className="chat-messages" id="chat-messages">
-                    <div className="system-message">
-                        <div className="system-msg-content">
-                            🛡️ This chat is moderated by AI for your safety.
-                            <br />
-                            Be respectful and follow community guidelines.
-                        </div>
-                    </div>
-
-                    <div className="system-message">
-                        <div className="system-msg-content">
-                            🎉 You matched with <strong>{partner.name}</strong> from{" "}
-                            <strong>{partner.college}</strong>! Say hi 👋
-                        </div>
-                    </div>
-
-                    {messages.map((msg) => (
-                        <div
-                            key={msg.id}
-                            className={`message ${msg.sender === "me" ? "msg-me" : "msg-partner"}`}
-                        >
-                            <div className="msg-bubble">
-                                <p>{msg.text}</p>
-                                <span className="msg-time">{msg.time}</span>
-                            </div>
-                        </div>
-                    ))}
-
-                    {isTyping && (
-                        <div className="message msg-partner">
-                            <div className="msg-bubble typing-bubble">
-                                <div className="typing-dots">
-                                    <span />
-                                    <span />
-                                    <span />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div ref={chatEndRef} />
-                </div>
-
-                {/* Icebreakers */}
-                {showIcebreakers && messages.length === 0 && (
-                    <div className="icebreakers">
-                        <div className="ice-header">
-                            <span className="ice-icon">🧠</span>
-                            <span>AI Icebreaker Suggestions</span>
-                        </div>
-                        <div className="ice-list">
-                            {icebreakers.map((ice, i) => (
-                                <button
-                                    key={i}
-                                    className="ice-btn"
-                                    onClick={() => sendIcebreaker(ice)}
-                                    id={`icebreaker-${i}`}
-                                >
-                                    {ice}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Input */}
-                <form className="chat-input-bar" onSubmit={sendMessage}>
-                    <button type="button" className="btn btn-icon btn-ghost" id="attach-btn">
-                        📎
-                    </button>
-                    <input
-                        type="text"
-                        className="chat-input"
-                        placeholder="Type a message..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        id="chat-input"
-                    />
-                    <button
-                        type="submit"
-                        className={`btn btn-primary btn-icon send-btn ${!input.trim() ? "disabled" : ""}`}
-                        disabled={!input.trim()}
-                        id="send-btn"
-                    >
-                        →
-                    </button>
-                </form>
-            </main>
-
-            {/* Report Modal */}
-            {showReport && (
-                <div className="modal-overlay" onClick={() => setShowReport(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <h3>🚨 Report User</h3>
-                        <p style={{ color: "var(--text-secondary)", margin: "0.5rem 0 1rem", fontSize: "0.9rem" }}>
-                            Help us keep CampusConnect safe. Select a reason:
-                        </p>
-                        <div className="report-options">
-                            {[
-                                "Inappropriate content",
-                                "Harassment or bullying",
-                                "Spam or fake profile",
-                                "NSFW content",
-                                "Threatening behavior",
-                                "Other",
-                            ].map((reason) => (
-                                <button key={reason} className="report-option" onClick={() => setShowReport(false)}>
-                                    {reason}
-                                </button>
-                            ))}
-                        </div>
-                        <button className="btn btn-ghost" onClick={() => setShowReport(false)} style={{ marginTop: "1rem", width: "100%" }}>
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            <style jsx>{`
+      <style jsx>{`
         .chat-layout {
           display: flex;
           height: 100vh;
@@ -688,6 +696,6 @@ export default function ChatPage() {
           }
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 }

@@ -25,6 +25,7 @@ export default function VideoMatchPage() {
     const [isSearching, setIsSearching] = useState(true);
     const [chatTime, setChatTime] = useState(0);
     const [partner, setPartner] = useState(null);
+    const [currentCallId, setCurrentCallId] = useState(null);
     const [isMuted, setIsMuted] = useState(false);
     const [isCameraOff, setIsCameraOff] = useState(false);
     const [safetyBlur, setSafetyBlur] = useState(true);
@@ -131,6 +132,14 @@ export default function VideoMatchPage() {
                     console.log("Matched by peer!");
                     isConnecting.current = true;
                     partnerDocIdRef.current = data.partnerDocId;
+
+                    // Sync active chat in profile
+                    updateDoc(doc(db, "users", user.uid), {
+                        activeChatId: data.callId,
+                        partnerId: data.matchedWith,
+                        partnerName: data.matchedWithData?.name || "Partner"
+                    }).catch(() => { });
+
                     startWebRTC(data.matchedWith, data.matchedWithData, false, data.callId);
                 }
             });
@@ -178,6 +187,19 @@ export default function VideoMatchPage() {
                             partnerDocId: bestMatch.id,
                             callId
                         });
+
+                        // Persist active chat in user profiles for the dedicated chat page
+                        await updateDoc(doc(db, "users", user.uid), {
+                            activeChatId: callId,
+                            partnerId: bestData.userId,
+                            partnerName: bestData.name
+                        });
+                        await updateDoc(doc(db, "users", bestData.userId), {
+                            activeChatId: callId,
+                            partnerId: user.uid,
+                            partnerName: profile?.name || "Student"
+                        });
+
                         partnerDocIdRef.current = bestMatch.id;
                         startWebRTC(bestData.userId, bestData, true, callId);
                     } catch (e) {
@@ -297,6 +319,9 @@ export default function VideoMatchPage() {
                     });
                 });
             }
+
+            // Sync current call ID for message logic
+            setCurrentCallId(callId);
         };
 
         startMatchSearch();
@@ -306,12 +331,49 @@ export default function VideoMatchPage() {
         };
     }, [user, isSearching]);
 
+    // ── 3. Real-time Message Sync ──
+    useEffect(() => {
+        if (!currentCallId || !user) return;
+
+        console.log("Starting message sync for:", currentCallId);
+        const msgsRef = collection(db, "calls", currentCallId, "messages");
+        const q = query(msgsRef, orderBy("createdAt", "asc"));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const newMessages = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                sender: doc.data().senderId === user.uid ? "me" : "partner"
+            }));
+
+            setMessages(prev => {
+                // Keep system messages, but replace Firestore-backed messages
+                const systemMsgs = prev.filter(m => m.sender === "system");
+                return [...systemMsgs, ...newMessages];
+            });
+        });
+
+        return () => unsubscribe();
+    }, [currentCallId, user?.uid]);
+
     // UI Handlers
-    const sendMessage = (e) => {
+    const sendMessage = async (e) => {
         e.preventDefault();
-        if (!input.trim()) return;
-        setMessages(p => [...p, { id: Date.now(), text: input.trim(), sender: "me" }]);
+        if (!input.trim() || !currentCallId || !user) return;
+
+        const msgText = input.trim();
         setInput("");
+
+        try {
+            await addDoc(collection(db, "calls", currentCallId, "messages"), {
+                text: msgText,
+                senderId: user.uid,
+                createdAt: serverTimestamp()
+            });
+        } catch (err) {
+            console.error("Error sending message:", err);
+            // Revert input on error?
+        }
     };
 
     const giveKarma = async () => {
@@ -326,6 +388,7 @@ export default function VideoMatchPage() {
         cleanupQueue();
         setIsSearching(true);
         setPartner(null);
+        setCurrentCallId(null);
         setMessages([]);
         setChatTime(0);
         setSafetyBlur(true);
