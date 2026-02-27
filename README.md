@@ -10,7 +10,20 @@
 In a world of generic social media, Campus Connect is a private digital square designed specifically for student life. No bots, no strangers—just verified students from India's top institutions engaging in meaningful video interactions.
 
 ### 🛡️ Verified & Exclusive
-Access is restricted to students with an official `.edu` or college email ID. We support **100+ institutions** including all **IITs, NITs, BITS, IIITs**, and major private universities like **VIT, Manipal, and SRM.**
+Access is restricted to students with an official `.edu` or college email ID. We support **100+ institutions** across India to ensure a bot-free, high-trust network.
+
+### 🏫 Supported Institutions & Domains
+Campus Connect currently supports students from the following networks:
+
+*   **All Indian Institutes of Technology (IITs)**: `@iit*.ac.in` (e.g., IIT Bombay, IIT Jodhpur, IIT Delhi)
+*   **National Institutes of Technology (NITs)**: `@nit*.ac.in` & `@nitt.edu` (e.g., NIT Warangal, Trichy, Calicut)
+*   **Indian Institutes of Information Technology (IIITs)**: `@iiit*.ac.in` (e.g., IIIT Hyderabad, Allahabad, Bangalore)
+*   **Birla Institute of Technology and Science (BITS)**: `@bits-*.ac.in` (Pilani, Goa, Hyderabad)
+*   **Top Private Universities**: `@vit.ac.in`, `@manipal.edu`, `@srmist.edu.in`, `@thapar.edu`, `@amity.edu`, `@lpu.in`
+*   **Central & State Universities**: `@du.ac.in`, `@jnu.ac.in`, `@bhu.ac.in`, `@uohyd.ac.in`, `@jmi.ac.in`, `@annauniv.edu`
+*   **Medical & Law Excellence**: `@aiims.edu`, `@mamc.ac.in`, `@nls.ac.in`, `@nludelhi.ac.in`
+
+> **Note:** Only official institutional email IDs from these domains are permitted. Generic domains like @gmail.com or @yahoo.com are strictly denied access.
 
 ---
 
