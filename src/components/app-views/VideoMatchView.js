@@ -119,6 +119,15 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         let searchInterval = null;
 
         const startMatchSearch = async () => {
+            // 1. CLEAR STALE GHOSTS: Delete any existing queue entries for this user first
+            try {
+                const staleQ = query(collection(db, "matchQueue"), where("userId", "==", user.uid));
+                const staleSnap = await getDocs(staleQ);
+                for (const d of staleSnap.docs) {
+                    await deleteDoc(doc(db, "matchQueue", d.id)).catch(() => { });
+                }
+            } catch (e) { }
+
             const myEntry = {
                 userId: user.uid,
                 name: profile?.name || "Student",
