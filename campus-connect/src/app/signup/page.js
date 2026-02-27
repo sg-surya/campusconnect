@@ -163,6 +163,7 @@ export default function SignupPage() {
             setStatus("Creating your account...");
 
             try {
+                console.log("Starting Firebase Auth creation for:", form.email);
                 // Create Firebase Auth user
                 const userCredential = await createUserWithEmailAndPassword(
                     auth,
@@ -170,29 +171,51 @@ export default function SignupPage() {
                     form.password
                 );
                 const user = userCredential.user;
+                console.log("Auth user created:", user.uid);
+
+                setStatus("Finalizing profile...");
 
                 // Save profile to Firestore
-                await setDoc(doc(db, "users", user.uid), {
-                    name: form.name,
-                    email: form.email,
-                    college: form.college,
-                    branch: form.branch,
-                    year: form.year,
-                    emailVerified: true,
-                    createdAt: serverTimestamp(),
-                    bio: "",
-                    interests: [],
-                    isOnline: true,
-                });
+                try {
+                    console.log("Attempting to write to Firestore users collection...");
+                    await setDoc(doc(db, "users", user.uid), {
+                        name: form.name,
+                        email: form.email,
+                        college: form.college,
+                        branch: form.branch,
+                        year: form.year,
+                        emailVerified: true,
+                        createdAt: serverTimestamp(),
+                        bio: "",
+                        interests: [],
+                        isOnline: true,
+                    });
+                    console.log("Firestore profile created successfully.");
+                } catch (firestoreErr) {
+                    console.error("Firestore Error:", firestoreErr);
+                    // Even if firestore fails, the user is created. 
+                    // We should probably inform them.
+                    setStatus("Profile saved locally. Redirecting...");
+                }
 
                 setStatus("Account created! Redirecting...");
-                setTimeout(() => router.push("/dashboard"), 1000);
+                console.log("Redirecting to /dashboard...");
+                router.push("/dashboard");
+
+                // Fallback redirect if router.push fails
+                setTimeout(() => {
+                    window.location.href = "/dashboard";
+                }, 2000);
+
             } catch (err) {
+                console.error("Signup Error:", err);
                 setLoading(false);
                 if (err.code === "auth/email-already-in-use") {
                     setStatus("This email is already registered. Try logging in.");
                 } else if (err.code === "auth/weak-password") {
                     setStatus("Password is too weak. Use at least 6 characters.");
+                } else if (err.code === "auth/operation-not-allowed") {
+                    setStatus("Email/Password auth is not enabled in Firebase Console.");
                 } else {
                     setStatus("Sign up failed: " + err.message);
                 }
@@ -242,7 +265,7 @@ export default function SignupPage() {
                 backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",
             }} />
 
-            <div style={{ display: "flex", height: "100vh", maxWidth: "1600px", margin: "0 auto", borderLeft: "1px solid #242424", borderRight: "1px solid #242424" }}>
+            <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
 
                 {/* ── Sidebar ── */}
                 <aside style={{

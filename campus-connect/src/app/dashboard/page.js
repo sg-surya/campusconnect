@@ -225,10 +225,7 @@ export default function DashboardPage() {
         display: "grid",
         gridTemplateColumns: "80px 1fr 350px",
         height: "100vh",
-        maxWidth: "1600px",
-        margin: "0 auto",
-        borderLeft: "1px solid #242424",
-        borderRight: "1px solid #242424",
+        width: "100vw",
         position: "relative",
       }}>
 

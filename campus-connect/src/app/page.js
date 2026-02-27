@@ -75,7 +75,7 @@ export default function LandingPage() {
         backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",
       }} />
 
-      <div style={{ display: "flex", minHeight: "100vh", maxWidth: "1600px", margin: "0 auto", borderLeft: "1px solid #242424", borderRight: "1px solid #242424" }}>
+      <div style={{ display: "flex", minHeight: "100vh", width: "100vw" }}>
 
         {/* ══ LEFT SIDEBAR ══ */}
         <aside style={{

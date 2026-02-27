@@ -82,7 +82,7 @@ export default function LoginPage() {
                 backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",
             }} />
 
-            <div style={{ display: "flex", height: "100vh", maxWidth: "1600px", margin: "0 auto", borderLeft: "1px solid #242424", borderRight: "1px solid #242424" }}>
+            <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
 
                 {/* ── Sidebar ── */}
                 <aside style={{
