@@ -15,12 +15,18 @@ export default function AppShell() {
     const router = useRouter();
     const [currentView, setCurrentView] = useState("dashboard"); // dashboard, matching, profile
     const [selectedMode, setSelectedMode] = useState(null);
+    const [mounted, setMounted] = useState(false);
+    const [broadcast, setBroadcast] = useState(null);
 
     useEffect(() => {
-        if (!loading && !user) {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!loading && !user && mounted) {
             router.replace("/");
         }
-    }, [loading, user, router]);
+    }, [loading, user, router, mounted]);
 
     useEffect(() => {
         if (!user) return;
@@ -32,13 +38,11 @@ export default function AppShell() {
         // 2. ABSOLUTE ENFORCEMENT: Listen for Admin Actions
         const unsub = onSnapshot(userRef, (snap) => {
             if (!snap.exists()) {
-                // User deleted by admin
                 handleLogout();
                 return;
             }
             const data = snap.data();
             if (data.isOnline === false) {
-                // Session killed by admin
                 handleLogout();
                 alert("SESSION_TERMINATED: Your access has been revoked by the Super Admin.");
             }
@@ -49,6 +53,14 @@ export default function AppShell() {
             updateDoc(userRef, { isOnline: false }).catch(() => { });
         };
     }, [user]);
+
+    useEffect(() => {
+        const unsub = onSnapshot(doc(db, "system_config", "broadcast"), (snap) => {
+            if (snap.exists()) setBroadcast(snap.data());
+            else setBroadcast(null);
+        });
+        return () => unsub();
+    }, []);
 
     const handleStartMatch = (mode) => {
         setSelectedMode(mode);
@@ -61,20 +73,11 @@ export default function AppShell() {
         router.replace("/");
     };
 
-    const [broadcast, setBroadcast] = useState(null);
-
-    useEffect(() => {
-        const unsub = onSnapshot(doc(db, "system_config", "broadcast"), (snap) => {
-            if (snap.exists()) setBroadcast(snap.data());
-            else setBroadcast(null);
-        });
-        return () => unsub();
-    }, []);
-
-    if (loading || !user) {
+    // Hydration match / Loading state
+    if (!mounted || loading || !user) {
         return (
             <div className="loader-screen">
-                <div className="spinner" />
+                <div className="spinner"></div>
                 <span>SECURE ACCESS INITIALIZING...</span>
                 <style jsx>{`
                     .loader-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #050505; color: #555; font-family: monospace; gap: 20px; }
@@ -88,7 +91,7 @@ export default function AppShell() {
     return (
         <div className={`app-container ${currentView === 'matching' ? 'fullscreen-mode' : ''}`} style={{
             display: "grid",
-            gridTemplateColumns: "80px 1fr",
+            gridTemplateColumns: currentView === "matching" ? "1fr" : "100px 1fr",
             height: "100vh",
             width: "100vw",
             background: "#050505",
@@ -108,22 +111,19 @@ export default function AppShell() {
                     <button
                         onClick={() => setBroadcast(null)}
                         style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontWeight: 900 }}
-                    >×</button>
+                    >✕</button>
                 </div>
             )}
-            {/* Mobile Top Header (App Feel) */}
+
+            {/* Mobile Header */}
             {currentView !== "matching" && (
                 <header className="mobile-header" style={{
                     position: "fixed", top: 0, left: 0, right: 0, height: "60px",
-                    background: "rgba(10,10,10,0.8)", backdropFilter: "blur(20px)",
-                    borderBottom: "1px solid rgba(255,255,255,0.05)", zHeight: 1000,
-                    display: "none", alignItems: "center", justifyContent: "space-between",
-                    padding: "0 20px", zIndex: 1000
+                    background: "rgba(5,5,5,0.8)", backdropFilter: "blur(10px)",
+                    borderBottom: "1px solid #111", zcallIndex: 100, display: "none",
+                    alignItems: "center", padding: "0 20px"
                 }}>
-                    <div style={{ fontWeight: 900, fontSize: "18px", letterSpacing: "-1px" }}>CAMPUS<span style={{ color: "#8b5cf6" }}>CONNECT</span></div>
-                    <div onClick={() => setCurrentView("profile")} style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#1a1a1a", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                    </div>
+                    <div style={{ fontWeight: 900, fontSize: "16px", letterSpacing: "2px" }}>CAMPUSCONNECT</div>
                 </header>
             )}
 
@@ -214,10 +214,6 @@ export default function AppShell() {
                 )}
             </main>
             <style jsx>{`
-                .loader-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #050505; color: #555; font-family: monospace; gap: 20px; }
-                .spinner { width: 40px; height: 40px; border: 2px solid #1a1a1a; border-top-color: #8b5cf6; border-radius: 50%; animation: spin 0.8s linear infinite; }
-                @keyframes spin { to { transform: rotate(360deg); } }
-
                 @media (max-width: 768px) {
                     .app-container {
                         grid-template-columns: 1fr !important;
@@ -274,7 +270,7 @@ export default function AppShell() {
                         font-weight: 700 !important;
                     }
                     .logout-btn {
-                        display: none !important; /* Move to profile or hide on mobile nav */
+                        display: none !important;
                     }
                 }
             `}</style>

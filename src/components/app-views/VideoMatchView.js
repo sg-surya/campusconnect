@@ -137,7 +137,25 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         if (streamRef.current) streamRef.current.getTracks().forEach(t => peer.addTrack(t, streamRef.current));
 
         peer.ontrack = (e) => {
-            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0];
+            console.log("WebRTC: Received Remote Track", e.track.kind);
+            if (remoteVideoRef.current) {
+                if (remoteVideoRef.current.srcObject) {
+                    // Track already exists, just add new track to stream if needed
+                    const stream = remoteVideoRef.current.srcObject;
+                    if (!stream.getTracks().includes(e.track)) {
+                        stream.addTrack(e.track);
+                    }
+                } else {
+                    // Create new stream with the track
+                    const stream = e.streams[0] || new MediaStream([e.track]);
+                    remoteVideoRef.current.srcObject = stream;
+                }
+
+                // Final push to ensure it plays
+                setTimeout(() => {
+                    remoteVideoRef.current?.play().catch(err => console.error("Video play failed:", err));
+                }, 500);
+            }
         };
 
         const callDoc = doc(db, "calls", callId);
@@ -354,14 +372,20 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
                 <div className="video-grid" style={{ flex: 1, gap: "1px", background: "#1a1a1a" }}>
                     <div className="remote-video-wrap" style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                        <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
-                        {/* CC Watermark */}
+                        <video
+                            ref={remoteVideoRef}
+                            autoPlay
+                            playsInline
+                            style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
+                        />
+                        {/* CC Watermark - Remote */}
                         {!isSearching && (
-                            <div style={{
+                            <div className="cc-watermark" style={{
                                 position: "absolute", top: "20px", right: "20px",
                                 fontWeight: 900, fontSize: "14px", border: "1.5px solid rgba(255,255,255,0.4)",
-                                padding: "3px 5px", transform: "rotate(-5deg)", color: "rgba(255,255,255,0.4)",
-                                userSelect: "none", zIndex: 10, pointerEvents: "none"
+                                padding: "4px 6px", transform: "rotate(-5deg)", color: "rgba(255,255,255,0.6)",
+                                background: "rgba(0,0,0,0.2)", backdropFilter: "blur(2px)",
+                                userSelect: "none", zIndex: 60, pointerEvents: "none", borderRadius: "4px"
                             }}>CC</div>
                         )}
                         {isSearching && (
@@ -380,6 +404,15 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
                     <div className="local-video-wrap" style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                         <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", filter: isCameraOff ? "brightness(0)" : "none" }} />
+
+                        {/* CC Watermark - Local */}
+                        <div className="cc-watermark" style={{
+                            position: "absolute", top: "20px", left: "20px",
+                            fontWeight: 900, fontSize: "12px", border: "1px solid rgba(255,255,255,0.2)",
+                            padding: "3px 5px", transform: "rotate(-5deg)", color: "rgba(255,255,255,0.3)",
+                            userSelect: "none", zIndex: 60, pointerEvents: "none", borderRadius: "3px"
+                        }}>CC</div>
+
                         <div style={{ position: "absolute", bottom: "20px", right: "20px", background: "rgba(0,0,0,0.5)", padding: "5px 10px", fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#666", border: "1px solid rgba(255,255,255,0.1)" }}>
                             LIVE_SIGNAL
                         </div>
@@ -476,10 +509,29 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 .video-match-container {
                     display: grid;
                     grid-template-columns: 1fr 380px;
+                    height: 100vh;
+                }
+                .video-area {
+                    display: flex;
+                    flex-direction: column;
+                    height: 100%;
                 }
                 .video-grid {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
+                    flex: 1;
+                    background: #111;
+                }
+                .remote-video-wrap, .local-video-wrap {
+                    position: relative;
+                    height: 100%;
+                    width: 100%;
+                    background: #000;
+                }
+                .chat-sidebar {
+                    display: flex;
+                    flex-direction: column;
+                    height: 100%;
                 }
 
                 @keyframes pulse {
@@ -512,7 +564,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         flex-direction: column !important;
                         gap: 10px !important;
                         padding: 10px !important;
-                        padding-bottom: 90px !important; /* Space for dock */
+                        padding-bottom: 90px !important;
                         background: #000 !important;
                     }
                     .remote-video-wrap, .local-video-wrap {
@@ -563,12 +615,6 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         color: #ff4757 !important;
                         border: 1px solid rgba(255,71,87,0.2) !important;
                     }
-                @keyframes slideUp {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
-                }
-
-                @media (max-width: 768px) {
                     .chat-backdrop {
                         display: block !important;
                     }
