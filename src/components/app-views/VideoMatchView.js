@@ -337,7 +337,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
                 <div className="video-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", flex: 1, gap: "1px", background: "#1a1a1a" }}>
                     <div style={{ position: "relative", background: "#080808", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                        <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
                         {isSearching && (
                             <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: "center", gap: "15px" }}>
                                 <div style={{ width: "50px", height: "1px", background: "#8b5cf6", animation: "pulse 1.5s infinite" }} />
