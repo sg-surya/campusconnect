@@ -220,9 +220,9 @@ export default function LandingPage() {
 
 
           {/* Hero */}
-          <section id="discover" style={{ padding: "120px 80px", position: "relative" }}>
-            <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "60px", alignItems: "center" }}>
+          <section id="discover" style={{ padding: "80px", position: "relative", minHeight: "85vh", display: "flex", alignItems: "center" }}>
+            <div style={{ maxWidth: "1600px", margin: "0 auto", width: "100%" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "80px", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ flex: "1 1 500px" }}>
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "30px",
@@ -275,23 +275,82 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Stats Slab */}
-                <div style={{ width: "100%", maxWidth: "340px" }}>
-                  <div className="etch-reveal" style={{
-                    background: "#111", border: "1px solid rgba(255,255,255,0.06)", padding: "40px",
-                    boxShadow: "20px 20px 60px rgba(0,0,0,0.5)"
+                {/* Creative Idea #3: Floating "Live-Preview" Wireframe HUD */}
+                <div className="etch-reveal" style={{
+                  width: "100%", maxWidth: "520px", flexShrink: 0, perspective: "1000px"
+                }}>
+                  <div style={{
+                    background: "rgba(10,10,10,0.4)",
+                    border: "1px solid rgba(139,92,246,0.2)",
+                    borderRadius: "12px",
+                    position: "relative",
+                    overflow: "hidden",
+                    aspectRatio: "1.4 / 1",
+                    backdropFilter: "blur(40px)",
+                    boxShadow: "0 40px 100px rgba(0,0,0,0.8), inset 0 0 40px rgba(139,92,246,0.1)",
+                    transform: "rotateY(-5deg) rotateX(2deg)",
+                    padding: "30px"
                   }}>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", color: "#444", textTransform: "uppercase", marginBottom: "30px", letterSpacing: "2px" }}>NETWORK_STATS_001</div>
-                    {[
-                      { val: totalUsers, label: "Verified Students", color: "#fff" },
-                      { val: onlineCount, label: "Students Online", color: "#00ff66" },
-                      { val: activeMatches, label: "Live Matches Now", color: "#8b5cf6" },
-                    ].map((s, i) => (
-                      <div key={s.label} style={{ marginBottom: i === 2 ? 0 : "30px" }}>
-                        <div style={{ fontSize: "2.5rem", fontWeight: 900, color: s.color }}>{s.val}</div>
-                        <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "1px" }}>{s.label}</div>
+                    {/* Scanning Line Animation */}
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      background: "linear-gradient(to bottom, transparent, rgba(139,92,246,0.1), transparent)",
+                      height: "100px", width: "100%", zIndex: 2,
+                      animation: "scanLine 4s linear infinite",
+                      pointerEvents: "none"
+                    }} />
+
+                    {/* HUD Header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "40px", position: "relative", zIndex: 10 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ff4757", animation: "pulse 1.5s infinite" }} />
+                          <span style={{ fontSize: "10px", fontWeight: 900, fontFamily: "'JetBrains Mono', monospace", color: "#e0e0e0", letterSpacing: "2px" }}>LIVE_RADAR_SCANNING</span>
+                        </div>
+                        <div style={{ fontSize: "9px", color: "#444", fontFamily: "'JetBrains Mono', monospace" }}>LOC: MUMBAI_SERVER_NODE_4</div>
                       </div>
-                    ))}
+                      <div style={{ fontSize: "10px", color: "rgba(139,92,246,0.6)", border: "1px solid rgba(139,92,246,0.3)", padding: "4px 8px", borderRadius: "2px", fontFamily: "'JetBrains Mono', monospace" }}>
+                        SECURE_P2P_E2EE
+                      </div>
+                    </div>
+
+                    {/* Main HUD Visuals */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px", position: "relative", zIndex: 10 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
+                        {[
+                          { val: totalUsers, label: "VERIFIED_IDENTITIES", color: "#fff" },
+                          { val: onlineCount, label: "ACTIVE_NODES_ONLINE", color: "#00ff66" },
+                          { val: activeMatches, label: "PEER_CHANNELS_OPEN", color: "#8b5cf6" },
+                        ].map((s, i) => (
+                          <div key={s.label}>
+                            <div style={{ fontSize: "1.8rem", fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.val}</div>
+                            <div style={{ fontSize: "8px", color: "#444", textTransform: "uppercase", letterSpacing: "1px", marginTop: "4px", fontFamily: "'JetBrains Mono', monospace" }}>{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Waveform Visualization */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", background: "rgba(255,255,255,0.02)", borderRadius: "8px", position: "relative" }}>
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", height: "40px" }}>
+                          {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                            <div key={i} style={{
+                              width: "3px",
+                              background: "#8b5cf6",
+                              borderRadius: "4px",
+                              animation: `waveform 1.2s ease-in-out infinite alternate`,
+                              animationDelay: `${i * 0.15}s`
+                            }} />
+                          ))}
+                        </div>
+                        <div style={{ position: "absolute", bottom: "12px", fontSize: "7px", color: "rgba(255,255,255,0.2)", fontFamily: "'JetBrains Mono', monospace" }}>VOICE_DATA_STREAM</div>
+                      </div>
+                    </div>
+
+                    {/* Corner Decorations */}
+                    <div style={{ position: "absolute", top: "10px", left: "10px", width: "4px", height: "4px", borderTop: "1px solid #333", borderLeft: "1px solid #333" }} />
+                    <div style={{ position: "absolute", top: "10px", right: "10px", width: "4px", height: "4px", borderTop: "1px solid #333", borderRight: "1px solid #333" }} />
+                    <div style={{ position: "absolute", bottom: "10px", left: "10px", width: "4px", height: "4px", borderBottom: "1px solid #333", borderLeft: "1px solid #333" }} />
+                    <div style={{ position: "absolute", bottom: "10px", right: "10px", width: "4px", height: "4px", borderBottom: "1px solid #333", borderRight: "1px solid #333" }} />
                   </div>
                 </div>
               </div>
@@ -521,11 +580,14 @@ export default function LandingPage() {
         body { background-color: #050505; color: #e2e2e2; font-family: 'Inter', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #222; }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-        .etch-reveal { opacity: 0; transform: translateY(20px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        .etch-visible { opacity: 1 !important; transform: translateY(0) !important; }
-        a { color: inherit; text-decoration: none; transition: color 0.3s; }
-        a:hover { color: #fff; }
+        @keyframes waveform { 
+          from { height: 10px; opacity: 0.3; }
+          to { height: 40px; opacity: 1; }
+        }
+        @keyframes scanLine {
+          from { transform: translateY(-100%); }
+          to { transform: translateY(400%); }
+        }
       `}</style>
     </>
   );
