@@ -13,15 +13,42 @@ In a world of generic social media, Campus Connect is a private digital square d
 Access is restricted to students with an official `.edu` or college email ID. We support **100+ institutions** across India to ensure a bot-free, high-trust network.
 
 ### 🏫 Supported Institutions & Domains
-Campus Connect currently supports students from the following networks:
+Campus Connect is strictly for verified students. Below are the major networks and their primary domains currently supported:
 
-*   **All Indian Institutes of Technology (IITs)**: `@iit*.ac.in` (e.g., IIT Bombay, IIT Jodhpur, IIT Delhi)
-*   **National Institutes of Technology (NITs)**: `@nit*.ac.in` & `@nitt.edu` (e.g., NIT Warangal, Trichy, Calicut)
-*   **Indian Institutes of Information Technology (IIITs)**: `@iiit*.ac.in` (e.g., IIIT Hyderabad, Allahabad, Bangalore)
-*   **Birla Institute of Technology and Science (BITS)**: `@bits-*.ac.in` (Pilani, Goa, Hyderabad)
-*   **Top Private Universities**: `@vit.ac.in`, `@manipal.edu`, `@srmist.edu.in`, `@thapar.edu`, `@amity.edu`, `@lpu.in`
-*   **Central & State Universities**: `@du.ac.in`, `@jnu.ac.in`, `@bhu.ac.in`, `@uohyd.ac.in`, `@jmi.ac.in`, `@annauniv.edu`
-*   **Medical & Law Excellence**: `@aiims.edu`, `@mamc.ac.in`, `@nls.ac.in`, `@nludelhi.ac.in`
+| Group | Institution / Category | Email Domain |
+| :--- | :--- | :--- |
+| **IITs** | IIT Bombay (IITB) | `@iitb.ac.in` |
+| **IITs** | IIT Delhi (IITD) | `@iitd.ac.in` |
+| **IITs** | IIT Kanpur (IITK) | `@iitk.ac.in` |
+| **IITs** | IIT Madras (IITM) | `@iitm.ac.in` |
+| **IITs** | IIT Kharagpur (IITKGP) | `@iitkgp.ac.in` |
+| **IITs** | IIT Roorkee (IITR) | `@iitr.ac.in` |
+| **IITs** | IIT Jodhpur (IITJ) | `@iitj.ac.in` |
+| **IITs** | IIT Hyderabad (IITH) | `@iith.ac.in` |
+| **IITs** | Other IITs | `@iit*.ac.in` |
+| **NITs** | NIT Warangal (NITW) | `@nitw.ac.in` |
+| **NITs** | NIT Trichy (NITT) | `@nitt.edu` |
+| **NITs** | NIT Surathkal (NITK) | `@nitk.ac.in` |
+| **NITs** | NIT Rourkela (NITRKL)| `@nitrkl.ac.in` |
+| **NITs** | Other NITs | `@nit*.ac.in` |
+| **IIITs** | IIIT Hyderabad | `@iiit.ac.in` |
+| **IIITs** | IIIT Delhi | `@iiitd.ac.in` |
+| **IIITs** | IIIT Bangalore | `@iiitb.ac.in` |
+| **IIITs** | Other IIITs | `@iiit*.ac.in` |
+| **BITS** | BITS Pilani / Goa / HYD | `@bits-*.ac.in` |
+| **Private** | Manipal Institute (MIT) | `@manipal.edu` |
+| **Private** | VIT University | `@vit.ac.in` / `@vit.edu.in` |
+| **Private** | SRM Institute | `@srmist.edu.in` |
+| **Private** | Thapar University | `@thapar.edu` |
+| **Private** | Amity University | `@amity.edu` |
+| **Private** | LPU | `@lpu.in` |
+| **Private** | KIIT / KLU | `@kiit.ac.in` / `@kluniversity.in` |
+| **Central** | Delhi University (DU) | `@du.ac.in` |
+| **Central** | JNU / BHU / AMU | `@jnu.ac.in` / `@bhu.ac.in` / `@amu.ac.in` |
+| **Medical** | AIIMS Delhi | `@aiims.edu` |
+| **Law** | NLSIU Bangalore | `@nls.ac.in` |
+
+> **Note:** This list includes **100+ institutions**. If your college is part of the IIT/NIT/IIIT network or a major university listed above, your official `@college.ac.in` or `@college.edu` ID will be automatically accepted. 
 
 > **Note:** Only official institutional email IDs from these domains are permitted. Generic domains like @gmail.com or @yahoo.com are strictly denied access.
 
