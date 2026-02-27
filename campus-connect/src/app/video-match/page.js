@@ -11,8 +11,7 @@ import {
 } from "firebase/firestore";
 
 const servers = {
-    iceServers: [{ urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }],
-    iceCandidatePoolSize: 10,
+    iceServers: [{ urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302", "stun:stun3.l.google.com:19302", "stun:stun4.l.google.com:19302"] }]
 };
 
 export default function VideoMatchPage() {
@@ -37,6 +36,7 @@ export default function VideoMatchPage() {
     const partnerDocIdRef = useRef(null);
     const streamRef = useRef(null);
     const pc = useRef(null);
+    const isConnecting = useRef(false);
 
     const Icons = {
         Camera: ({ size = 20, color = "currentColor" }) => (
@@ -47,165 +47,266 @@ export default function VideoMatchPage() {
         ),
         Shield: ({ size = 20, color = "currentColor" }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-        ),
-        GraduationCap: ({ size = 20, color = "currentColor" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" /></svg>
         )
     };
 
+    // ── 1. Media Initialization ──
     useEffect(() => {
         async function getCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 streamRef.current = stream;
                 if (videoRef.current) videoRef.current.srcObject = stream;
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("Camera access denied:", err); }
         }
         getCamera();
-        return () => cleanupQueue();
+        return () => {
+            cleanupQueue();
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+        };
     }, []);
 
     const cleanupQueue = async () => {
+        isConnecting.current = false;
         if (queueDocRef.current) {
             try {
                 const docRef = doc(db, "matchQueue", queueDocRef.current);
                 await updateDoc(docRef, { status: "disconnected" });
-                setTimeout(() => deleteDoc(docRef).catch(() => { }), 2000);
+                setTimeout(() => deleteDoc(docRef).catch(() => { }), 1500);
             } catch (e) { }
             queueDocRef.current = null;
         }
         if (partnerDocIdRef.current) {
-            try { await updateDoc(doc(db, "matchQueue", partnerDocIdRef.current), { status: "disconnected" }); } catch (e) { }
+            try {
+                await updateDoc(doc(db, "matchQueue", partnerDocIdRef.current), { status: "disconnected" });
+            } catch (e) { }
             partnerDocIdRef.current = null;
         }
         if (pc.current) {
-            pc.current.getSenders().forEach(s => s.track && s.track.stop());
+            pc.current.getSenders().forEach(s => pc.current.removeTrack(s));
             pc.current.close();
             pc.current = null;
         }
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     };
 
-    const calculateMatchScore = (me, target) => {
-        let score = 0;
-        if (me.college === target.college) score += 40;
-        const overlap = (me.interests || []).filter(i => (target.interests || []).includes(i)).length;
-        score += overlap * 15;
-        const karmaDiff = Math.abs((me.karma || 100) - (target.karma || 100));
-        if (karmaDiff < 50) score += 20;
-        return score;
-    };
-
+    // ── 2. Matching Engine ──
     useEffect(() => {
         if (!user || !isSearching) return;
-        let myUnsub = null, searchInterval = null;
 
-        const findMatch = async () => {
+        let myUnsub = null;
+        let searchInterval = null;
+
+        const startMatchSearch = async () => {
             const myEntry = {
                 userId: user.uid,
                 name: profile?.name || "Student",
-                college: profile?.college || "Unknown",
+                college: profile?.college || "Verified College",
                 interests: profile?.interests || [],
                 gender: profile?.gender || "Other",
                 karma: profile?.karma || 100,
-                mode, status: "searching", createdAt: serverTimestamp()
+                mode,
+                status: "searching",
+                createdAt: serverTimestamp()
             };
+
             const qRef = await addDoc(collection(db, "matchQueue"), myEntry);
             queueDocRef.current = qRef.id;
 
             myUnsub = onSnapshot(doc(db, "matchQueue", qRef.id), (snap) => {
                 const data = snap.data();
-                if (data?.status === "disconnected" && !isSearching) handleNext();
-                if (data?.status === "matched" && data.matchedWith && isSearching) {
+                if (!data) return;
+
+                // Partner Disconnected sync
+                if (data.status === "disconnected" && !isSearching) {
+                    console.log("Partner disconnected, resetting...");
+                    handleNext();
+                    return;
+                }
+
+                // Matched by someone else
+                if (data.status === "matched" && data.matchedWith && isSearching && !isConnecting.current) {
+                    console.log("Matched by peer!");
+                    isConnecting.current = true;
                     partnerDocIdRef.current = data.partnerDocId;
                     startWebRTC(data.matchedWith, data.matchedWithData, false, data.callId);
                 }
             });
 
-            const search = async () => {
-                if (!isSearching) return;
-                let q = query(collection(db, "matchQueue"), where("status", "==", "searching"), orderBy("createdAt", "asc"), limit(20));
-                if (mode !== "RANDOM") q = query(q, where("mode", "==", mode));
+            const searchForPeers = async () => {
+                if (!isSearching || isConnecting.current) return;
+
+                const q = query(
+                    collection(db, "matchQueue"),
+                    where("status", "==", "searching"),
+                    orderBy("createdAt", "asc"),
+                    limit(15)
+                );
 
                 const snap = await getDocs(q);
+                // STRICT CHECK: Cannot match with yourself (Same doc ID AND Same User ID)
                 const others = snap.docs.filter(d => d.id !== qRef.id && d.data().userId !== user.uid);
 
                 if (others.length > 0) {
-                    const best = others.map(c => ({ doc: c, score: calculateMatchScore(myEntry, c.data()) })).sort((a, b) => b.score - a.score)[0].doc;
-                    const bestData = best.data();
-                    const callId = [qRef.id, best.id].sort().join("_");
+                    // Match Scoring Logic
+                    const sorted = others.map(d => ({
+                        doc: d,
+                        score: (d.data().college === myEntry.college ? 40 : 0) +
+                            (d.data().interests.filter(i => myEntry.interests.includes(i)).length * 15)
+                    })).sort((a, b) => b.score - a.score);
+
+                    const bestMatch = sorted[0].doc;
+                    const bestData = bestMatch.data();
+                    const callId = [qRef.id, bestMatch.id].sort().join("_");
+
                     try {
-                        await updateDoc(doc(db, "matchQueue", best.id), { status: "matched", matchedWith: user.uid, matchedWithData: myEntry, partnerDocId: qRef.id, callId });
-                        await updateDoc(doc(db, "matchQueue", qRef.id), { status: "matched", matchedWith: bestData.userId, matchedWithData: bestData, partnerDocId: best.id, callId });
-                        partnerDocIdRef.current = best.id;
+                        isConnecting.current = true;
+                        // Atomic Match Handshake
+                        await updateDoc(doc(db, "matchQueue", bestMatch.id), {
+                            status: "matched",
+                            matchedWith: user.uid,
+                            matchedWithData: myEntry,
+                            partnerDocId: qRef.id,
+                            callId
+                        });
+                        await updateDoc(doc(db, "matchQueue", qRef.id), {
+                            status: "matched",
+                            matchedWith: bestData.userId,
+                            matchedWithData: bestData,
+                            partnerDocId: bestMatch.id,
+                            callId
+                        });
+                        partnerDocIdRef.current = bestMatch.id;
                         startWebRTC(bestData.userId, bestData, true, callId);
-                    } catch (e) { }
+                    } catch (e) {
+                        isConnecting.current = false;
+                        console.log("Match collision, retrying...");
+                    }
                 }
             };
-            searchInterval = setInterval(search, 3500);
+
+            searchInterval = setInterval(searchForPeers, 3000);
         };
 
         const startWebRTC = async (pId, pData, isCaller, callId) => {
-            if (!isSearching) return;
             setIsSearching(false);
             setPartner(pData);
             setSafetyBlur(true);
             setTimeout(() => setSafetyBlur(false), 3000);
-            setMessages([{ id: "sys", text: `Connected with ${pData.name}. Secure peer channel established.`, sender: "system" }]);
+            setMessages([{ id: "sys", text: `Connected with ${pData.name}. Peer channel ready.`, sender: "system" }]);
 
             const peer = new RTCPeerConnection(servers);
             pc.current = peer;
-            if (streamRef.current) streamRef.current.getTracks().forEach(t => peer.addTrack(t, streamRef.current));
 
-            peer.ontrack = (e) => {
-                if (remoteVideoRef.current && e.streams[0]) {
-                    remoteVideoRef.current.srcObject = e.streams[0];
-                    remoteVideoRef.current.play().catch(() => { });
+            const candidateQueue = [];
+            let isRemoteDescriptionSet = false;
+
+            // Proper track handling
+            if (streamRef.current) {
+                console.log("Adding local tracks...");
+                streamRef.current.getTracks().forEach(t => peer.addTrack(t, streamRef.current));
+            }
+
+            peer.ontrack = (event) => {
+                const remoteStream = event.streams[0] || new MediaStream([event.track]);
+                console.log("Remote track received:", event.track.kind);
+                if (remoteVideoRef.current) {
+                    remoteVideoRef.current.srcObject = remoteStream;
+                    remoteVideoRef.current.play().catch(e => console.log("Autoplay blocked:", e));
+                }
+            };
+
+            peer.oniceconnectionstatechange = () => {
+                console.log("ICE Connection State:", peer.iceConnectionState);
+                if (peer.iceConnectionState === "disconnected" || peer.iceConnectionState === "failed") {
+                    handleNext();
                 }
             };
 
             const callDoc = doc(db, "calls", callId);
             peer.onicecandidate = (e) => {
                 if (e.candidate && peer.localDescription) {
-                    addDoc(collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON()).catch(() => { });
+                    const candCol = collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates");
+                    addDoc(candCol, e.candidate.toJSON()).catch(() => { });
+                }
+            };
+
+            const processCandidateQueue = async () => {
+                console.log("Processing buffered candidates:", candidateQueue.length);
+                while (candidateQueue.length > 0) {
+                    const cand = candidateQueue.shift();
+                    await peer.addIceCandidate(new RTCIceCandidate(cand)).catch(e => console.error("Buffered candidate error:", e));
                 }
             };
 
             if (isCaller) {
+                console.log("Role: CALLER");
                 const offer = await peer.createOffer();
                 await peer.setLocalDescription(offer);
                 await setDoc(callDoc, { offer: { sdp: offer.sdp, type: offer.type } });
-                onSnapshot(callDoc, (s) => {
-                    const d = s.data();
-                    if (d?.answer && peer.signalingState === "have-local-offer") {
-                        peer.setRemoteDescription(new RTCSessionDescription(d.answer));
-                    }
-                });
-                onSnapshot(collection(callDoc, "calleeCandidates"), (s) => s.docChanges().forEach(c => {
-                    if (c.type === "added") peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
-                }));
-            } else {
-                let processed = false;
+
                 onSnapshot(callDoc, async (s) => {
                     const d = s.data();
-                    if (d?.offer && !processed) {
-                        processed = true;
+                    if (d?.answer && peer.signalingState === "have-local-offer") {
+                        await peer.setRemoteDescription(new RTCSessionDescription(d.answer));
+                        isRemoteDescriptionSet = true;
+                        await processCandidateQueue();
+                    }
+                });
+
+                onSnapshot(collection(callDoc, "calleeCandidates"), (s) => {
+                    s.docChanges().forEach(async (c) => {
+                        if (c.type === "added") {
+                            const data = c.doc.data();
+                            if (isRemoteDescriptionSet) {
+                                await peer.addIceCandidate(new RTCIceCandidate(data)).catch(() => { });
+                            } else {
+                                candidateQueue.push(data);
+                            }
+                        }
+                    });
+                });
+            } else {
+                console.log("Role: CALLEE");
+                let sdpSet = false;
+                onSnapshot(callDoc, async (s) => {
+                    const d = s.data();
+                    if (d?.offer && !sdpSet) {
+                        sdpSet = true;
                         await peer.setRemoteDescription(new RTCSessionDescription(d.offer));
+                        isRemoteDescriptionSet = true;
                         const ans = await peer.createAnswer();
                         await peer.setLocalDescription(ans);
                         await updateDoc(callDoc, { answer: { sdp: ans.sdp, type: ans.type } });
+                        await processCandidateQueue();
                     }
                 });
-                onSnapshot(collection(callDoc, "callerCandidates"), (s) => s.docChanges().forEach(c => {
-                    if (c.type === "added") peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
-                }));
+
+                onSnapshot(collection(callDoc, "callerCandidates"), (s) => {
+                    s.docChanges().forEach(async (c) => {
+                        if (c.type === "added") {
+                            const data = c.doc.data();
+                            if (isRemoteDescriptionSet) {
+                                await peer.addIceCandidate(new RTCIceCandidate(data)).catch(() => { });
+                            } else {
+                                candidateQueue.push(data);
+                            }
+                        }
+                    });
+                });
             }
         };
 
-        findMatch();
-        return () => { if (myUnsub) myUnsub(); if (searchInterval) clearInterval(searchInterval); };
+        startMatchSearch();
+        return () => {
+            if (myUnsub) myUnsub();
+            if (searchInterval) clearInterval(searchInterval);
+        };
     }, [user, isSearching]);
 
+    // UI Handlers
     const sendMessage = (e) => {
         e.preventDefault();
         if (!input.trim()) return;
@@ -221,9 +322,28 @@ export default function VideoMatchPage() {
         } catch (e) { }
     };
 
-    const handleNext = () => { cleanupQueue(); setIsSearching(true); setPartner(null); setMessages([]); setChatTime(0); setSafetyBlur(true); };
-    const handleStop = () => { cleanupQueue(); router.push("/dashboard"); };
+    const handleNext = () => {
+        cleanupQueue();
+        setIsSearching(true);
+        setPartner(null);
+        setMessages([]);
+        setChatTime(0);
+        setSafetyBlur(true);
+    };
+
+    const handleStop = () => {
+        cleanupQueue();
+        router.push("/dashboard");
+    };
+
     const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+
+    useEffect(() => {
+        const t = setInterval(() => { if (!isSearching) setChatTime(v => v + 1); }, 1000);
+        return () => clearInterval(t);
+    }, [isSearching]);
+
+    useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
     return (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100vh", width: "100vw", background: "#050505", overflow: "hidden", fontFamily: "'Inter', sans-serif" }}>
@@ -239,13 +359,18 @@ export default function VideoMatchPage() {
                 )}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", flex: 1, gap: "1px", background: "#1a1a1a" }}>
                     <div style={{ position: "relative", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                        <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        {isSearching && <div style={{ textAlign: "center", opacity: 0.5 }}><div style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "3px", color: "#8b5cf6" }}>LOOKING_FOR_MATCH...</div></div>}
+                        <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(1)" }} />
+                        {isSearching && (
+                            <div style={{ textAlign: "center", opacity: 0.5 }}>
+                                <div style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "3px", color: "#8b5cf6" }}>LOOKING_FOR_MATCH...</div>
+                            </div>
+                        )}
                         {!isSearching && safetyBlur && (
                             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(40px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 5 }}>
                                 <div style={{ textAlign: "center" }}><Icons.Shield size={32} color="#8b5cf6" /><div style={{ fontSize: "11px", color: "#8b5cf6", letterSpacing: "2px", fontWeight: 800, marginTop: "10px" }}>AI_SAFETY_SCANNING</div></div>
                             </div>
                         )}
+                        <div style={{ position: "absolute", bottom: "30px", left: "30px", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }}>MATCH</div>
                     </div>
                     <div style={{ position: "relative", background: "#0a0a0a", overflow: "hidden" }}>
                         <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", filter: isCameraOff ? "brightness(0)" : "none" }} />
