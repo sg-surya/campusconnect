@@ -86,7 +86,7 @@ export default function AppShell() {
     }
 
     return (
-        <div className="app-container" style={{
+        <div className={`app-container ${currentView === 'matching' ? 'fullscreen-mode' : ''}`} style={{
             display: "grid",
             gridTemplateColumns: "80px 1fr",
             height: "100vh",
@@ -112,90 +112,94 @@ export default function AppShell() {
                 </div>
             )}
             {/* Mobile Top Header (App Feel) */}
-            <header className="mobile-header" style={{
-                position: "fixed", top: 0, left: 0, right: 0, height: "60px",
-                background: "rgba(10,10,10,0.8)", backdropFilter: "blur(20px)",
-                borderBottom: "1px solid rgba(255,255,255,0.05)", zHeight: 1000,
-                display: "none", alignItems: "center", justifyContent: "space-between",
-                padding: "0 20px", zIndex: 1000
-            }}>
-                <div style={{ fontWeight: 900, fontSize: "18px", letterSpacing: "-1px" }}>CAMPUS<span style={{ color: "#8b5cf6" }}>CONNECT</span></div>
-                <div onClick={() => setCurrentView("profile")} style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#1a1a1a", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                </div>
-            </header>
+            {currentView !== "matching" && (
+                <header className="mobile-header" style={{
+                    position: "fixed", top: 0, left: 0, right: 0, height: "60px",
+                    background: "rgba(10,10,10,0.8)", backdropFilter: "blur(20px)",
+                    borderBottom: "1px solid rgba(255,255,255,0.05)", zHeight: 1000,
+                    display: "none", alignItems: "center", justifyContent: "space-between",
+                    padding: "0 20px", zIndex: 1000
+                }}>
+                    <div style={{ fontWeight: 900, fontSize: "18px", letterSpacing: "-1px" }}>CAMPUS<span style={{ color: "#8b5cf6" }}>CONNECT</span></div>
+                    <div onClick={() => setCurrentView("profile")} style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#1a1a1a", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                    </div>
+                </header>
+            )}
 
             {/* Minimal Sidebar for desktop / Bottom Nav for mobile */}
-            <aside className="app-sidebar" style={{
-                borderRight: "1px solid #1a1a1a",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                padding: "40px 0",
-                background: "rgba(10,10,10,0.9)",
-                backdropFilter: "blur(20px)",
-                zIndex: 100
-            }}>
-                <div className="logo-small" style={{
-                    fontWeight: 900, fontSize: "20px", border: "2px solid #fff",
-                    padding: "4px 6px", transform: "rotate(-5deg)", marginBottom: "60px", userSelect: "none"
-                }}>CC</div>
-
-                <nav className="sidebar-nav" style={{
-                    flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "40px"
+            {currentView !== "matching" && (
+                <aside className="app-sidebar" style={{
+                    borderRight: "1px solid #1a1a1a",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    padding: "40px 0",
+                    background: "rgba(10,10,10,0.9)",
+                    backdropFilter: "blur(20px)",
+                    zIndex: 100
                 }}>
+                    <div className="logo-small" style={{
+                        fontWeight: 900, fontSize: "20px", border: "2px solid #fff",
+                        padding: "4px 6px", transform: "rotate(-5deg)", marginBottom: "60px", userSelect: "none"
+                    }}>CC</div>
+
+                    <nav className="sidebar-nav" style={{
+                        flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "40px"
+                    }}>
+                        <button
+                            onClick={() => setCurrentView("dashboard")}
+                            className={`nav-item ${currentView === "dashboard" ? "active" : ""}`}
+                            style={{
+                                background: "none", border: "none",
+                                color: currentView === "dashboard" ? "#8b5cf6" : "#444",
+                                textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace",
+                                fontSize: "10px", fontWeight: currentView === "dashboard" ? 900 : 400,
+                                letterSpacing: "2px", writingMode: "vertical-rl", cursor: "pointer", transition: "0.3s",
+                                display: "flex", flexDirection: "column", alignItems: "center", gap: "8px"
+                            }}
+                        >
+                            <span className="mobile-icon" style={{ display: "none" }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                            </span>
+                            <span className="nav-label">MATCH</span>
+                        </button>
+
+                        <button
+                            onClick={() => setCurrentView("profile")}
+                            className={`nav-item ${currentView === "profile" ? "active" : ""}`}
+                            style={{
+                                background: "none", border: "none",
+                                color: currentView === "profile" ? "#8b5cf6" : "#444",
+                                textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace",
+                                fontSize: "10px", fontWeight: currentView === "profile" ? 900 : 400,
+                                letterSpacing: "2px", writingMode: "vertical-rl", cursor: "pointer", transition: "0.3s",
+                                display: "flex", flexDirection: "column", alignItems: "center", gap: "8px"
+                            }}
+                        >
+                            <span className="mobile-icon" style={{ display: "none" }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                            </span>
+                            <span className="nav-label">PROFILE</span>
+                        </button>
+                    </nav>
+
                     <button
-                        onClick={() => setCurrentView("dashboard")}
-                        className={`nav-item ${currentView === "dashboard" ? "active" : ""}`}
+                        className="logout-btn"
+                        onClick={handleLogout}
                         style={{
-                            background: "none", border: "none",
-                            color: currentView === "dashboard" ? "#8b5cf6" : "#444",
-                            textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace",
-                            fontSize: "10px", fontWeight: currentView === "dashboard" ? 900 : 400,
-                            letterSpacing: "2px", writingMode: "vertical-rl", cursor: "pointer", transition: "0.3s",
-                            display: "flex", flexDirection: "column", alignItems: "center", gap: "8px"
+                            color: "#ff4757", background: "none", border: "none",
+                            fontFamily: "'JetBrains Mono', monospace", fontSize: "10px",
+                            letterSpacing: "1px", cursor: "pointer", fontWeight: 700
                         }}
                     >
                         <span className="mobile-icon" style={{ display: "none" }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
                         </span>
-                        <span className="nav-label">MATCH</span>
+                        <span className="nav-label">LOGOUT</span>
                     </button>
-
-                    <button
-                        onClick={() => setCurrentView("profile")}
-                        className={`nav-item ${currentView === "profile" ? "active" : ""}`}
-                        style={{
-                            background: "none", border: "none",
-                            color: currentView === "profile" ? "#8b5cf6" : "#444",
-                            textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace",
-                            fontSize: "10px", fontWeight: currentView === "profile" ? 900 : 400,
-                            letterSpacing: "2px", writingMode: "vertical-rl", cursor: "pointer", transition: "0.3s",
-                            display: "flex", flexDirection: "column", alignItems: "center", gap: "8px"
-                        }}
-                    >
-                        <span className="mobile-icon" style={{ display: "none" }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
-                        </span>
-                        <span className="nav-label">PROFILE</span>
-                    </button>
-                </nav>
-
-                <button
-                    className="logout-btn"
-                    onClick={handleLogout}
-                    style={{
-                        color: "#ff4757", background: "none", border: "none",
-                        fontFamily: "'JetBrains Mono', monospace", fontSize: "10px",
-                        letterSpacing: "1px", cursor: "pointer", fontWeight: 700
-                    }}
-                >
-                    <span className="mobile-icon" style={{ display: "none" }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-                    </span>
-                    <span className="nav-label">LOGOUT</span>
-                </button>
-            </aside>
+                </aside>
+            )}
 
             {/* View Render Area */}
             <main style={{ position: "relative", overflow: "hidden", height: "100%" }}>
@@ -219,6 +223,10 @@ export default function AppShell() {
                         grid-template-columns: 1fr !important;
                         padding-top: 60px !important; /* Header space */
                         padding-bottom: 80px !important; /* Nav space */
+                    }
+                    .app-container.fullscreen-mode {
+                        padding-top: 0 !important;
+                        padding-bottom: 0 !important;
                     }
                     .mobile-header {
                         display: flex !important;
