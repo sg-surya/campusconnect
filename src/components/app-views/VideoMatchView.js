@@ -39,6 +39,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         Shield: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
     };
 
+    // ── 1. Create/Toggle Media Stream ──
     useEffect(() => {
         async function getCamera() {
             try {
@@ -53,6 +54,21 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
         };
     }, []);
+
+    // Effect to handle Mute/Camera Toggles for the peer
+    useEffect(() => {
+        if (!streamRef.current) return;
+        streamRef.current.getAudioTracks().forEach(track => {
+            track.enabled = !isMuted;
+        });
+    }, [isMuted]);
+
+    useEffect(() => {
+        if (!streamRef.current) return;
+        streamRef.current.getVideoTracks().forEach(track => {
+            track.enabled = !isCameraOff;
+        });
+    }, [isCameraOff]);
 
     const cleanupQueue = async () => {
         isConnecting.current = false;
@@ -118,13 +134,12 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
             myUnsub = onSnapshot(doc(db, "matchQueue", qRef.id), (snap) => {
                 const data = snap.data();
-                if (!data) return;
-                // Immediate termination if doc status is disconnected
-                if (data.status === "disconnected") {
+                // Treat document deletion or 'disconnected' status as a skip
+                if (!snap.exists() || (data && data.status === "disconnected")) {
                     handleNext();
                     return;
                 }
-                if (data.status === "matched" && data.matchedWith && isSearching && !isConnecting.current) {
+                if (data && data.status === "matched" && data.matchedWith && isSearching && !isConnecting.current) {
                     isConnecting.current = true;
                     partnerDocIdRef.current = data.partnerDocId;
                     startWebRTC(data.matchedWith, data.matchedWithData, false, data.callId);
