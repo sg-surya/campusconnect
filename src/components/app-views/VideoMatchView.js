@@ -332,19 +332,19 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
             <div className="video-area" style={{ display: "flex", flexDirection: "column", position: "relative", background: "#000" }}>
                 {partner && (
-                    <div style={{
-                        position: "absolute", top: "30px", left: "30px", zIndex: 100,
-                        display: "flex", alignItems: "center", gap: "15px",
-                        background: "rgba(10,10,10,0.8)", padding: "12px 20px",
-                        borderRadius: "2px", border: "1px solid rgba(255,255,255,0.1)",
-                        backdropFilter: "blur(20px)", boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+                    <div className="partner-overlay" style={{
+                        position: "absolute", top: "20px", left: "20px", zIndex: 100,
+                        display: "flex", alignItems: "center", gap: "12px",
+                        background: "rgba(0,0,0,0.6)", padding: "10px 16px",
+                        borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)",
+                        backdropFilter: "blur(20px)", boxShadow: "0 10px 40px rgba(0,0,0,0.5)"
                     }}>
-                        <div style={{ width: "40px", height: "40px", background: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: "18px" }}>
+                        <div style={{ width: "32px", height: "32px", background: "#8b5cf6", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: "14px" }}>
                             {partner.name[0]}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column" }}>
-                            <strong style={{ fontSize: "14px", color: "#fff", textTransform: "uppercase", letterSpacing: "1px" }}>{partner.name}</strong>
-                            <span style={{ fontSize: "10px", color: "#8b5cf6", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{partner.college?.toUpperCase()}</span>
+                            <strong style={{ fontSize: "12px", color: "#fff", textTransform: "uppercase", letterSpacing: "1px" }}>{partner.name}</strong>
+                            <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace" }}>{partner.college?.toUpperCase()}</span>
                         </div>
                     </div>
                 )}
@@ -456,54 +456,75 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 @media (max-width: 768px) {
                     .video-match-container {
                         grid-template-columns: 1fr !important;
-                        padding-top: 60px !important;
-                        padding-bottom: 80px !important;
+                        padding: 0 !important;
                     }
                     .mobile-title {
                         display: flex !important;
+                        background: rgba(0,0,0,0.9) !important;
+                        height: 50px !important;
+                    }
+                    .video-area {
+                        height: 100% !important;
+                        padding-top: 50px !important;
+                        padding-bottom: 0 !important;
+                        background: #000 !important;
+                        display: flex !important;
+                        flex-direction: column !important;
                     }
                     .video-grid {
-                        grid-template-columns: 1fr !important;
-                        grid-template-rows: 1fr 1fr !important;
-                        gap: 2px !important;
-                        background: #1a1a1a !important;
+                        flex: 1 !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        gap: 10px !important;
+                        padding: 10px !important;
+                        background: #000 !important;
                     }
                     .remote-video-wrap, .local-video-wrap {
-                        height: 50% !important;
+                        flex: 1 !important;
+                        height: auto !important;
+                        border-radius: 20px !important;
+                        border: 1px solid rgba(255,255,255,0.08) !important;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.4) !important;
+                        overflow: hidden !important;
+                    }
+                    .partner-overlay {
+                        top: 25px !important;
+                        left: 25px !important;
+                        padding: 8px 12px !important;
                     }
                     .chat-sidebar {
                         display: none !important;
                     }
                     .controls {
-                        position: fixed !important;
-                        bottom: 95px !important;
+                        position: absolute !important;
+                        bottom: 30px !important;
                         left: 50% !important;
                         transform: translateX(-50%) !important;
-                        width: 90% !important;
-                        height: 70px !important;
-                        background: rgba(10,10,12,0.9) !important;
-                        backdrop-filter: blur(20px) !important;
-                        padding: 0 20px !important;
-                        border-radius: 20px !important;
-                        border: 1px solid rgba(255,255,255,0.08) !important;
-                        gap: 12px !important;
-                        box-shadow: 0 20px 50px rgba(0,0,0,0.8) !important;
+                        width: 92% !important;
+                        height: 75px !important;
+                        background: rgba(15,15,18,0.85) !important;
+                        backdrop-filter: blur(30px) !important;
+                        padding: 0 15px !important;
+                        border-radius: 24px !important;
+                        border: 1px solid rgba(255,255,255,0.1) !important;
+                        gap: 10px !important;
+                        box-shadow: 0 25px 60px rgba(0,0,0,0.9) !important;
                     }
                     .controls button:first-of-type {
-                        flex: 2 !important;
-                        padding: 12px !important;
-                        border-radius: 12px !important;
-                        clip-path: none !important;
-                        font-size: 11px !important;
+                        flex: 2.5 !important;
+                        height: 54px !important;
+                        border-radius: 16px !important;
+                        font-size: 13px !important;
+                        font-weight: 900 !important;
+                        letter-spacing: 0.5px !important;
                     }
                     .controls button:not(:first-of-type) {
                         flex: 1 !important;
-                        padding: 12px !important;
-                        border-radius: 12px !important;
-                        font-size: 10px !important;
-                    }
-                    .controls div {
-                        display: none !important;
+                        height: 54px !important;
+                        border-radius: 16px !important;
+                        font-size: 11px !important;
+                        color: #ff4757 !important;
+                        border: 1px solid rgba(255,71,87,0.2) !important;
                     }
                 }
             `}</style>
