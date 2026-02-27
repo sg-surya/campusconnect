@@ -98,13 +98,8 @@ export default function DashboardPage() {
     }));
 
     setTimeout(() => {
-      setStatusLine("Match found!");
-      setMatchLine("Student ID: CC-" + Math.floor(1000 + Math.random() * 9000) + " · Verified ✓");
-      setBtnStates((prev) => ({
-        ...prev,
-        [mode]: { text: "Open Chat", phase: "connected" },
-      }));
-    }, 1800);
+      router.push(`/video-match?mode=${mode}`);
+    }, 1500);
   };
 
   const getBtnStyle = (mode) => {
