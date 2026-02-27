@@ -366,6 +366,45 @@ export default function LandingPage() {
             </div>
           </section>
 
+          {/* Supported Institutions Section */}
+          <section id="network" style={{ padding: "100px 80px", background: "#080808", borderTop: "1px solid #1a1a1a", borderBottom: "1px solid #1a1a1a" }}>
+            <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+              <div style={{ marginBottom: "60px" }}>
+                <div style={{ fontSize: "12px", color: "#8b5cf6", fontWeight: 900, letterSpacing: "4px", marginBottom: "15px", fontFamily: "'JetBrains Mono', monospace" }}>NETWORK_COVERAGE_v1.0</div>
+                <h2 style={{ fontSize: "3.5rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-3px" }}>Supported Institutions.</h2>
+                <p style={{ color: "rgba(255,255,255,0.4)", maxWidth: "600px", lineHeight: 1.6, marginTop: "15px" }}>
+                  CampusConnect is strictly for verified students. We currently support 100+ prestigious Indian institutions. Use your official college email ID to gain access.
+                </p>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "2px", background: "#1a1a1a", border: "1px solid #1a1a1a" }}>
+                {[
+                  { title: "Indian Institutes of Technology", prefix: "IIT", domains: ["iitb", "iitd", "iitk", "iitm", "iitkgp", "iitr", "iitg", "iith", "iitj", "iitgn", "iitp", "iitbbs", "iitindore", "iitmandi", "iitrpr", "iitv", "iitbhilai", "iitgoa", "iitpkd", "iittp", "iitdh", "iitjammu", "iitbhw"] },
+                  { title: "National Institutes of Technology", prefix: "NIT", domains: ["nitw", "nitt", "nitk", "nitrkl", "nitc", "vnit", "nitjsr", "nitp", "nitkurukshetra", "nits", "nitdgp", "nithamirpur", "nitrr", "nitmz", "nitmanipur", "nitm", "nitnagaland", "nitpy", "nitsikkim", "nitap", "nitdelhi", "nitgoa", "nituk", "nith"] },
+                  { title: "IIITs & BITS", prefix: "Specialty", domains: ["iiit", "iiitd", "iiitb", "iiita", "iiitdmj", "iiitdm", "iiitg", "iiitkota", "iiitn", "iiitp", "iiitvadodara", "iiits", "iiitk", "bits-pilani", "bits-hyderabad", "bits-goa"] },
+                  { title: "Major Private & Central", prefix: "University", domains: ["vit", "manipal", "srmist", "thapar", "amity", "lpu", "sharda", "kiit", "du", "jnu", "bhu", "uohyd", "annauniv", "amu", "mu", "osmania", "aiims"] }
+                ].map((group) => (
+                  <div key={group.title} style={{ background: "#0a0a0a", padding: "30px" }}>
+                    <h4 style={{ fontSize: "11px", color: "#8b5cf6", fontWeight: 800, letterSpacing: "2px", marginBottom: "20px", textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace" }}>{group.title}</h4>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      {group.domains.map(dom => (
+                        <div key={dom} style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", fontFamily: "'JetBrains Mono', monospace", padding: "8px", border: "1px solid rgba(255,255,255,0.02)", background: "rgba(255,255,255,0.01)" }}>
+                          {dom.toUpperCase()}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: "40px", padding: "20px", background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.2)", textAlign: "center", borderRadius: "4px" }}>
+                <span style={{ fontSize: "11px", color: "#8b5cf6", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+                  › Don&apos;t see your college? We are adding 50+ new institutions every month. Contact support to request yours.
+                </span>
+              </div>
+            </div>
+          </section>
+
           {/* Safety First */}
           <section id="safety" style={{ padding: "100px 80px", background: "linear-gradient(to bottom, transparent, #080808)" }}>
             <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
