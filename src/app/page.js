@@ -56,11 +56,7 @@ export default function LandingPage() {
 
     const io = new IntersectionObserver(
       (entries) => entries.forEach((en) => {
-        if (en.isIntersecting) {
-          en.target.classList.add("visible");
-        } else {
-          en.target.classList.remove("visible");
-        }
+        if (en.isIntersecting) en.target.classList.add("visible");
       }),
       { threshold: 0.1 }
     );
@@ -71,7 +67,7 @@ export default function LandingPage() {
     return () => { window.removeEventListener("mousemove", move); io.disconnect(); };
   }, []);
 
-  const navItems = ["Discover", "Modes", "Protocols", "Network"];
+  const navItems = ["Discover", "Features", "Modes", "Safety", "Support"];
 
   const Icons = {
     Globe: ({ size = 24, color = "currentColor" }) => (
@@ -366,6 +362,39 @@ export default function LandingPage() {
             </div>
           </section>
 
+          {/* Mission / How it works */}
+          <section id="features" style={{ padding: "100px 80px", background: "rgba(5,5,5,0.8)" }}>
+            <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "100px", alignItems: "start" }}>
+                <div>
+                  <h2 style={{ fontSize: "3rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-3px", lineHeight: 1, marginBottom: "30px" }}>
+                    One Platform.<br />Elite Community.
+                  </h2>
+                  <p style={{ color: "rgba(255,255,255,0.4)", lineHeight: 1.8, marginBottom: "30px" }}>
+                    CampusConnect was born out of a simple need: College students needed a place to network without the toxicity of random video apps. By requiring a **.edu** or **Verified College Email**, we ensure that every person you meet is a peer.
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    {["Direct campus-to-campus networking", "Founders finding builders", "Academic collaboration across India", "Secure, encrypted student identities"].map(text => (
+                      <div key={text} style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                        <div style={{ width: "20px", height: "1px", background: "#8b5cf6" }} />
+                        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", fontFamily: "'JetBrains Mono', monospace" }}>{text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                  {features.map(f => (
+                    <div key={f.num} className="etch-reveal" style={{ background: "#111", padding: "30px", border: "1px solid #1a1a1a" }}>
+                      <div style={{ fontSize: "10px", color: "#8b5cf6", marginBottom: "15px", fontFamily: "'JetBrains Mono', monospace" }}>{f.num} // {f.tag}</div>
+                      <h4 style={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "10px", textTransform: "uppercase" }}>{f.title}</h4>
+                      <p style={{ fontSize: "12px", color: "#555", lineHeight: 1.6 }}>{f.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
 
           {/* Modes Section */}
           <section id="modes" style={{ padding: "100px 80px" }}>
@@ -579,6 +608,27 @@ export default function LandingPage() {
             </div>
           </section>
 
+          {/* Safety First */}
+          <section id="safety" style={{ padding: "100px 80px", background: "linear-gradient(to bottom, transparent, #080808)" }}>
+            <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
+              <div style={{ fontSize: "12px", color: "#ff4757", fontWeight: 900, letterSpacing: "4px", marginBottom: "20px" }}>SHIELD_PROTOCOL_ACTIVE</div>
+              <h2 style={{ fontSize: "4rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-4px", marginBottom: "40px" }}>Safety Built-In.</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "40px", textAlign: "left" }}>
+                <div>
+                  <h4 style={{ color: "#fff", fontWeight: 800, marginBottom: "10px" }}>AI Moderation</h4>
+                  <p style={{ fontSize: "12px", color: "#555" }}>Real-time filtering of inappropriate language and visual content using neural networks.</p>
+                </div>
+                <div>
+                  <h4 style={{ color: "#fff", fontWeight: 800, marginBottom: "10px" }}>Verified Pulse</h4>
+                  <p style={{ fontSize: "12px", color: "#555" }}>Every student is checked against an active university roster. No outsiders allowed.</p>
+                </div>
+                <div>
+                  <h4 style={{ color: "#fff", fontWeight: 800, marginBottom: "10px" }}>End-to-End</h4>
+                  <p style={{ fontSize: "12px", color: "#555" }}>All video sessions are peer-to-peer and encrypted. Privacy isn&apos;t an option, it&apos;s a standard.</p>
+                </div>
+              </div>
+            </div>
+          </section>
 
           {/* Footer */}
           <footer style={{ padding: "80px", borderTop: "1px solid #1a1a1a" }}>
@@ -591,9 +641,9 @@ export default function LandingPage() {
                 <div>
                   <h5 style={{ fontSize: "10px", color: "#8b5cf6", letterSpacing: "2px", marginBottom: "20px" }}>PRODUCT</h5>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#666" }}>
+                    <Link href="#features">Features</Link>
                     <Link href="#modes">Modes</Link>
-                    <Link href="#protocols">Protocols</Link>
-                    <Link href="#network">Network</Link>
+                    <Link href="#safety">Safety</Link>
                     <a href="https://discord.gg/zNUtGNNmRG" target="_blank" rel="noopener noreferrer" style={{ color: "#8b5cf6" }}>Support (Discord)</a>
                   </div>
                 </div>
