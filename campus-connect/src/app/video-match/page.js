@@ -206,6 +206,13 @@ export default function VideoMatchPage() {
         return () => { if (myUnsub) myUnsub(); if (searchInterval) clearInterval(searchInterval); };
     }, [user, isSearching]);
 
+    const sendMessage = (e) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+        setMessages(p => [...p, { id: Date.now(), text: input.trim(), sender: "me" }]);
+        setInput("");
+    };
+
     const giveKarma = async () => {
         if (!partner?.userId) return;
         try {
