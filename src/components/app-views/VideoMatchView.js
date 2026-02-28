@@ -335,12 +335,9 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             <div className="mobile-title" style={{ display: "none", position: "fixed", top: 0, left: 0, right: 0, height: "60px", background: "rgba(10,10,10,0.8)", backdropFilter: "blur(20px)", zIndex: 100, alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <div style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#8b5cf6", letterSpacing: "2px", fontWeight: 900 }}>{mode || "MATCHING"} // ACTIVE_SESSION</div>
             </div>
-            <div style={{
-                position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, opacity: 0.03,
-                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-            }} />
+            <div className="noise-overlay" />
 
-            <div className="video-area" style={{ display: "flex", flexDirection: "column", position: "relative", background: "#000" }}>
+            <div className="video-area">
                 {partner && (
                     <div className="partner-overlay" style={{
                         position: "absolute", top: "20px", left: "20px", zIndex: 100,
@@ -416,7 +413,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     </div>
                 </div>
 
-                <div className="controls" style={{ height: "100px", background: "#0a0a0b", borderTop: "1px solid #1a1a1a", display: "flex", alignItems: "center", padding: "0 40px", gap: "20px", zIndex: 100 }}>
+                <div className="controls">
                     <button onClick={handleNext} style={{
                         background: "#fff", color: "#000", border: "none", fontWeight: 900, padding: "14px 40px", cursor: "pointer",
                         textTransform: "uppercase", fontSize: "12px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace",
@@ -458,7 +455,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 />
             )}
 
-            <aside className={`chat-sidebar ${isChatOpen ? 'mobile-open' : ''}`} style={{ borderLeft: "1px solid #1a1a1a", display: "flex", flexDirection: "column", background: "#080808", zIndex: 120 }}>
+            <aside className={`chat-sidebar ${isChatOpen ? 'mobile-open' : ''}`}>
                 {/* Drag Handle for Mobile */}
                 <div className="mobile-drag-handle" style={{ display: "none", width: "40px", height: "4px", background: "rgba(255,255,255,0.2)", borderRadius: "2px", margin: "12px auto 0" }} />
 
@@ -507,34 +504,106 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     display: grid;
                     grid-template-columns: 1fr 380px;
                     height: 100vh;
+                    width: 100vw;
+                    background: #000;
+                    overflow: hidden;
+                    font-family: 'JetBrains Mono', monospace;
                 }
                 .video-area {
                     display: flex;
                     flex-direction: column;
                     height: 100%;
+                    background: #000;
+                    position: relative;
+                }
+                .noise-overlay {
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    z-index: 10;
+                    opacity: 0.04;
+                    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
                 }
                 .video-grid {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
                     flex: 1;
-                    background: #111;
+                    padding: 30px;
+                    gap: 30px;
+                    background: #000;
+                    overflow: hidden;
                 }
                 .remote-video-wrap, .local-video-wrap {
                     position: relative;
                     height: 100%;
                     width: 100%;
-                    background: #000;
+                    background: #111;
+                    clip-path: polygon(40px 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%, 0 40px);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+                }
+                .remote-video-wrap::before, .local-video-wrap::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    border: 1px solid rgba(255,255,255,0.05);
+                    clip-path: polygon(40px 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%, 0 40px);
+                    pointer-events: none;
+                    z-index: 5;
                 }
                 .chat-sidebar {
                     display: flex;
                     flex-direction: column;
-                    height: 100%;
+                    height: calc(100% - 40px);
+                    background: #000;
+                    width: 380px;
+                    position: relative;
+                    margin: 20px 20px 20px 0;
+                    clip-path: polygon(30px 0, 100% 0, 100% 100%, 0 100%, 0 30px);
+                    border: 1px solid rgba(255,255,255,0.05);
+                }
+                .chat-sidebar::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background-image: linear-gradient(rgba(139,92,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.03) 1px, transparent 1px);
+                    background-size: 30px 30px;
+                    pointer-events: none;
+                    z-index: 0;
+                }
+                .controls {
+                    height: 100px;
+                    background: #0d0d0e;
+                    border-top: 1.5px solid #1a1a1b;
+                    display: flex;
+                    align-items: center;
+                    padding: 0 50px;
+                    gap: 25px;
+                    z-index: 100;
+                    box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+                }
+                .controls button {
+                    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+                    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+                }
+                .controls button:hover {
+                    filter: brightness(1.2);
+                    transform: translateY(-2px);
                 }
 
                 @keyframes pulse {
                     0% { transform: scaleX(0.5); opacity: 0.2; }
-                    50% { transform: scaleX(2); opacity: 1; }
+                    50% { transform: scaleX(2); opacity: 0.8; }
                     100% { transform: scaleX(0.5); opacity: 0.2; }
+                }
+
+                @media (max-width: 1024px) {
+                    .video-match-container {
+                        grid-template-columns: 1fr;
+                    }
+                    .chat-sidebar {
+                        display: none;
+                    }
                 }
 
                 @media (max-width: 768px) {
@@ -544,76 +613,40 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     }
                     .mobile-title {
                         display: flex !important;
-                        background: rgba(0,0,0,0.9) !important;
-                        height: 50px !important;
+                        background: rgba(10,10,12,0.95) !important;
+                        height: 60px !important;
+                        border-bottom: 1.5px solid #1a1a1b !important;
                     }
                     .video-area {
                         height: 100% !important;
-                        padding-top: 50px !important;
+                        padding-top: 60px !important;
                         padding-bottom: 0 !important;
-                        background: #000 !important;
-                        display: flex !important;
-                        flex-direction: column !important;
                     }
                     .video-grid {
                         flex: 1 !important;
                         display: flex !important;
                         flex-direction: column !important;
-                        gap: 10px !important;
-                        padding: 10px !important;
-                        padding-bottom: 90px !important;
-                        background: #000 !important;
+                        gap: 15px !important;
+                        padding: 15px !important;
+                        padding-bottom: 110px !important;
                     }
                     .remote-video-wrap, .local-video-wrap {
                         flex: 1 !important;
                         height: auto !important;
-                        border-radius: 20px !important;
-                        border: 1px solid rgba(255,255,255,0.08) !important;
-                        box-shadow: 0 10px 40px rgba(0,0,0,0.6) !important;
-                        overflow: hidden !important;
-                    }
-                    .partner-overlay {
-                        top: 25px !important;
-                        left: 25px !important;
-                        padding: 8px 12px !important;
-                    }
-                    .chat-sidebar {
-                        display: none !important;
+                        clip-path: polygon(25px 0, 100% 0, 100% calc(100% - 25px), calc(100% - 25px) 100%, 0 100%, 0 25px) !important;
                     }
                     .controls {
                         position: absolute !important;
-                        bottom: 12px !important;
-                        left: 50% !important;
-                        transform: translateX(-50%) !important;
-                        width: 96% !important;
-                        height: 72px !important;
-                        background: rgba(12,12,14,0.85) !important;
-                        backdrop-filter: blur(40px) !important;
+                        bottom: 20px !important;
+                        left: 20px !important;
+                        right: 20px !important;
+                        width: calc(100% - 40px) !important;
+                        height: 75px !important;
+                        background: #0d0d0e !important;
                         padding: 0 15px !important;
-                        border-radius: 24px !important;
-                        border: 1px solid rgba(255,255,255,0.1) !important;
-                        gap: 10px !important;
-                        box-shadow: 0 20px 50px rgba(0,0,0,0.9) !important;
-                        z-index: 150 !important;
-                    }
-                    .controls button:first-of-type {
-                        flex: 2.5 !important;
-                        height: 54px !important;
-                        border-radius: 16px !important;
-                        font-size: 13px !important;
-                        font-weight: 900 !important;
-                        letter-spacing: 0.5px !important;
-                    }
-                    .controls button:not(:first-of-type) {
-                        flex: 1 !important;
-                        height: 54px !important;
-                        border-radius: 16px !important;
-                        font-size: 11px !important;
-                        color: #ff4757 !important;
-                        border: 1px solid rgba(255,71,87,0.2) !important;
-                    }
-                    .chat-backdrop {
-                        display: block !important;
+                        border-radius: 0 !important;
+                        border: 1.5px solid #1a1a1b !important;
+                        clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px) !important;
                     }
                     .chat-sidebar.mobile-open {
                         display: flex !important;
@@ -623,31 +656,11 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         right: 0 !important;
                         top: auto !important;
                         width: 100% !important;
-                        height: 70vh !important;
-                        z-index: 200 !important;
-                        background: #0a0a0b !important;
-                        border-top: 1px solid rgba(255,255,255,0.1) !important;
-                        border-radius: 24px 24px 0 0 !important;
-                        animation: slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1);
-                        box-shadow: 0 -20px 60px rgba(0,0,0,0.8) !important;
-                    }
-                    .mobile-drag-handle {
-                        display: block !important;
-                    }
-                    .mobile-chat-toggle {
-                        display: flex !important;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    .chat-sidebar form {
-                        padding: 15px !important;
-                        padding-bottom: 30px !important;
-                        background: #080808 !important;
-                    }
-                    .chat-sidebar input {
-                        background: #151517 !important;
-                        border-radius: 12px !important;
-                        border: 1px solid #222 !important;
+                        height: 75vh !important;
+                        z-index: 210 !important;
+                        background: #0d0d0e !important;
+                        border-top: 2px solid #8b5cf6 !important;
+                        border-radius: 30px 30px 0 0 !important;
                     }
                 }
             `}</style>
