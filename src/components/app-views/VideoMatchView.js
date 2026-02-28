@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import {
     collection, addDoc, onSnapshot, query, where,
     limit, getDocs, updateDoc, doc, deleteDoc,
-    serverTimestamp, orderBy, setDoc, increment
+    serverTimestamp, orderBy, setDoc, increment, runTransaction
 } from "firebase/firestore";
 
 const servers = {
@@ -276,23 +276,45 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         const callId = [qRef.id, bestMatch.id].sort().join("_");
                         try {
                             isConnecting.current = true;
-                            await updateDoc(doc(db, "matchQueue", bestMatch.id), {
-                                status: "matched",
-                                matchedWith: user.uid,
-                                matchedWithData: myEntry,
-                                partnerDocId: qRef.id,
-                                callId
+
+                            // Use a transaction to ensure atomic matching
+                            await runTransaction(db, async (transaction) => {
+                                const myDoc = await transaction.get(doc(db, "matchQueue", qRef.id));
+                                const partnerDoc = await transaction.get(doc(db, "matchQueue", bestMatch.id));
+
+                                if (!myDoc.exists() || !partnerDoc.exists()) {
+                                    throw "Nodes disappeared";
+                                }
+
+                                if (myDoc.data().status !== "searching" || partnerDoc.data().status !== "searching") {
+                                    throw "Node already matched";
+                                }
+
+                                // Update both nodes to matched status
+                                transaction.update(doc(db, "matchQueue", bestMatch.id), {
+                                    status: "matched",
+                                    matchedWith: user.uid,
+                                    matchedWithData: myEntry,
+                                    partnerDocId: qRef.id,
+                                    callId
+                                });
+
+                                transaction.update(doc(db, "matchQueue", qRef.id), {
+                                    status: "matched",
+                                    matchedWith: bestMatch.data.userId,
+                                    matchedWithData: bestMatch.data,
+                                    partnerDocId: bestMatch.id,
+                                    callId
+                                });
                             });
-                            await updateDoc(doc(db, "matchQueue", qRef.id), {
-                                status: "matched",
-                                matchedWith: bestMatch.data.userId,
-                                matchedWithData: bestMatch.data,
-                                partnerDocId: bestMatch.id,
-                                callId
-                            });
+
+                            console.log("WebRTC: Atomic match secured");
                             partnerDocIdRef.current = bestMatch.id;
                             startWebRTC(bestMatch.data.userId, bestMatch.data, true, callId);
-                        } catch (e) { isConnecting.current = false; }
+                        } catch (e) {
+                            console.warn("WebRTC: Match attempt failed or race condition detected", e);
+                            isConnecting.current = false;
+                        }
                     }
                 }
             };
