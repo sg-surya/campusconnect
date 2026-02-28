@@ -22,7 +22,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     const [isMuted, setIsMuted] = useState(false);
     const [isCameraOff, setIsCameraOff] = useState(false);
     const [safetyBlur, setSafetyBlur] = useState(true);
-    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
 
     const videoRef = useRef(null);
@@ -204,6 +204,12 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     };
 
     useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            setIsChatOpen(false);
+        }
+    }, []);
+
+    useEffect(() => {
         if (!user || !isSearching) return;
         let myUnsub = null;
         let searchInterval = null;
@@ -383,7 +389,10 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
     return (
-        <div className="video-match-container" style={{ height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden" }}>
+        <div className="video-match-container" style={{
+            height: "100%", width: "100%", background: "#050505", position: "relative", overflow: "hidden",
+            gridTemplateColumns: isChatOpen ? "1fr 380px" : "1fr 0px"
+        }}>
             {/* Mobile View Title */}
             <div className="mobile-title" style={{ display: "none", position: "fixed", top: 0, left: 0, right: 0, height: "60px", background: "rgba(10,10,10,0.8)", backdropFilter: "blur(20px)", zIndex: 100, alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <div style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#8b5cf6", letterSpacing: "2px", fontWeight: 900 }}>{mode || "MATCHING"} // ACTIVE_SESSION</div>
@@ -493,12 +502,14 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         <button onClick={() => setIsCameraOff(!isCameraOff)} style={{ background: isCameraOff ? "#ff4757" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", padding: "12px", borderRadius: "2px", cursor: "pointer" }}>
                             <Icons.Camera />
                         </button>
-                        <button className="mobile-chat-toggle" onClick={() => setIsChatOpen(true)} style={{
-                            display: "none", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                            color: "#fff", padding: "12px", borderRadius: "2px", cursor: "pointer", position: "relative"
+                        <button onClick={() => setIsChatOpen(!isChatOpen)} style={{
+                            background: isChatOpen ? "#fff" : "rgba(255,255,255,0.05)",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            color: isChatOpen ? "#000" : "#fff",
+                            padding: "12px", borderRadius: "2px", cursor: "pointer", position: "relative"
                         }}>
                             <Icons.Chat />
-                            {unreadCount > 0 && (
+                            {!isChatOpen && unreadCount > 0 && (
                                 <span style={{
                                     position: "absolute", top: "-6px", right: "-6px", background: "#8b5cf6",
                                     color: "#fff", fontSize: "10px", fontWeight: 900, minWidth: "18px", height: "18px",
@@ -525,7 +536,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 />
             )}
 
-            <aside className={`chat-sidebar ${isChatOpen ? 'mobile-open' : ''}`}>
+            <aside className={`chat-sidebar ${isChatOpen ? 'mobile-open' : 'desktop-closed'}`}>
                 {/* Drag Handle for Mobile */}
                 <div className="mobile-drag-handle" style={{ display: "none", width: "40px", height: "4px", background: "rgba(255,255,255,0.2)", borderRadius: "2px", margin: "12px auto 0" }} />
 
@@ -572,9 +583,9 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             <style jsx>{`
                 .video-match-container {
                     display: grid;
-                    grid-template-columns: 1fr 380px;
                     height: 100vh;
                     width: 100vw;
+                    transition: grid-template-columns 0.4s cubic-bezier(0.23, 1, 0.32, 1);
                     background: #000;
                     overflow: hidden;
                     font-family: 'JetBrains Mono', monospace;
@@ -626,11 +637,20 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     flex-direction: column;
                     height: calc(100% - 40px);
                     background: #000;
-                    width: 380px;
+                    width: 100%;
+                    max-width: 380px;
                     position: relative;
                     margin: 20px 20px 20px 0;
                     clip-path: polygon(30px 0, 100% 0, 100% 100%, 0 100%, 0 30px);
                     border: 1px solid rgba(255,255,255,0.05);
+                    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+                    overflow: hidden;
+                }
+                .chat-sidebar.desktop-closed {
+                    margin: 0;
+                    border: none;
+                    opacity: 0;
+                    pointer-events: none;
                 }
                 .chat-sidebar::before {
                     content: '';
