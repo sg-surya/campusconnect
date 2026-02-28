@@ -138,12 +138,27 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
         peer.ontrack = (e) => {
             console.log("WebRTC: Remote track received:", e.track.kind);
-            if (remoteVideoRef.current && e.streams && e.streams[0]) {
-                const stream = e.streams[0];
-                if (remoteVideoRef.current.srcObject !== stream) {
-                    remoteVideoRef.current.srcObject = stream;
-                    console.log("WebRTC: Remote stream attached");
+            if (remoteVideoRef.current) {
+                // Initialize srcObject with a new MediaStream if it doesn't exist
+                if (!remoteVideoRef.current.srcObject) {
+                    remoteVideoRef.current.srcObject = new MediaStream();
                 }
+
+                // Add the new track to the existing stream
+                const stream = remoteVideoRef.current.srcObject;
+                if (!stream.getTracks().includes(e.track)) {
+                    stream.addTrack(e.track);
+                    console.log(`WebRTC: Attached remote ${e.track.kind} track`);
+                }
+
+                // Force video playback nudge
+                setTimeout(() => {
+                    if (remoteVideoRef.current) {
+                        remoteVideoRef.current.play()
+                            .then(() => console.log("WebRTC: Remote playback active"))
+                            .catch(err => console.warn("WebRTC: Playback waiting for interaction", err.name));
+                    }
+                }, 150);
             }
         };
 
@@ -363,7 +378,11 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                             ref={remoteVideoRef}
                             autoPlay
                             playsInline
-                            style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", background: "#000" }}
+                            onLoadedMetadata={() => {
+                                console.log(`WebRTC: Remote video metadata loaded: ${remoteVideoRef.current?.videoWidth}x${remoteVideoRef.current?.videoHeight}`);
+                                remoteVideoRef.current?.play().catch(() => { });
+                            }}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", background: "#000" }}
                         />
                         {/* CC Watermark - Remote */}
                         {!isSearching && (
