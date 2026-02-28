@@ -221,122 +221,119 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
     useEffect(() => {
         if (!user || !isSearching) return;
-        let myUnsub = null;
-        let searchInterval = null;
-        const startTime = Date.now();
 
-        const startMatchSearch = async () => {
+        // Use refs for cleanup to handle closure within async initialization
+        let unsubMyDoc = null;
+        let unsubPeers = null;
+        let timer = null;
+        let localPeersPool = [];
+
+        const initializeSearch = async () => {
             try {
+                // CLEANUP STALE
                 const staleQ = query(collection(db, "matchQueue"), where("userId", "==", user.uid));
                 const staleSnap = await getDocs(staleQ);
                 for (const d of staleSnap.docs) { await deleteDoc(doc(db, "matchQueue", d.id)).catch(() => { }); }
-            } catch (e) { }
 
-            const myEntry = {
-                userId: user.uid,
-                name: profile?.name || "Student",
-                college: profile?.college || "Verified College",
-                branch: profile?.branch || "Unknown",
-                interests: profile?.interests || [],
-                karma: profile?.karma || 100,
-                isBanned: profile?.isBanned || false,
-                mode,
-                status: "searching",
-                createdAt: serverTimestamp()
-            };
+                const myEntry = {
+                    userId: user.uid,
+                    name: profile?.name || "Student",
+                    college: profile?.college || "Verified College",
+                    branch: profile?.branch || "Unknown",
+                    interests: profile?.interests || [],
+                    karma: profile?.karma || 100,
+                    isBanned: profile?.isBanned || false,
+                    mode,
+                    status: "searching",
+                    createdAt: serverTimestamp()
+                };
 
-            const qRef = await addDoc(collection(db, "matchQueue"), myEntry);
-            queueDocRef.current = qRef.id;
+                const qRef = await addDoc(collection(db, "matchQueue"), myEntry);
+                queueDocRef.current = qRef.id;
 
-            myUnsub = onSnapshot(doc(db, "matchQueue", qRef.id), (snap) => {
-                const data = snap.data();
-                if (!snap.exists() || (data && data.status === "disconnected")) {
-                    handleNext();
-                    return;
-                }
-
-                // ADMIN INTERCEPTION & STANDARD MATCHING
-                if (data && data.status === "matched" && data.matchedWith && isSearching && !isConnecting.current) {
-                    isConnecting.current = true;
-                    partnerDocIdRef.current = data.partnerDocId;
-
-                    if (data.adminForced) console.log("ADMIN_INTERCEPTION: Direct match assigned by Control Room.");
-
-                    setTimeout(() => {
-                        startWebRTC(data.matchedWith, data.matchedWithData, false, data.callId);
-                    }, 1000);
-                }
-            });
-
-            const attemptAtomicMatch = async (myRefId, bestMatch, callId, myEntry) => {
-                if (isConnecting.current) return;
-                try {
-                    isConnecting.current = true;
-                    await runTransaction(db, async (transaction) => {
-                        const myDoc = await transaction.get(doc(db, "matchQueue", myRefId));
-                        const partnerDoc = await transaction.get(doc(db, "matchQueue", bestMatch.id));
-
-                        if (myDoc.exists() && partnerDoc.exists() &&
-                            myDoc.data().status === "searching" &&
-                            partnerDoc.data().status === "searching") {
-
-                            transaction.update(doc(db, "matchQueue", bestMatch.id), {
-                                status: "matched", matchedWith: user.uid,
-                                matchedWithData: myEntry, partnerDocId: myRefId, callId
-                            });
-                            transaction.update(doc(db, "matchQueue", myRefId), {
-                                status: "matched", matchedWith: bestMatch.data.userId,
-                                matchedWithData: bestMatch.data, partnerDocId: bestMatch.id, callId
-                            });
-                        } else { throw "Nodes unavailable"; }
-                    });
-                    partnerDocIdRef.current = bestMatch.id;
-                    startWebRTC(bestMatch.data.userId, bestMatch.data, true, callId);
-                } catch (e) {
-                    isConnecting.current = false;
-                }
-            };
-
-            let localPeersPool = [];
-            const qPeers = query(collection(db, "matchQueue"), where("status", "==", "searching"), limit(15));
-            const peersUnsub = onSnapshot(qPeers, (snap) => {
-                localPeersPool = snap.docs.map(d => ({ id: d.id, data: d.data() }));
-                runMatchingLogic(); // Check immediately on update
-            });
-
-            const runMatchingLogic = () => {
-                if (!isSearching || isConnecting.current || localPeersPool.length === 0) return;
-
-                const searchAge = (Date.now() - startTime) / 1000;
-                const others = localPeersPool.filter(p => p.id !== qRef.id && p.data.userId !== user.uid && !p.data.isBanned);
-
-                if (others.length > 0) {
-                    const scoredPeers = others.map(p => ({
-                        id: p.id,
-                        data: p.data,
-                        score: calculateCompatibility(myEntry, p.data, searchAge)
-                    })).sort((a, b) => b.score - a.score);
-
-                    const bestMatch = scoredPeers[0];
-                    const threshold = searchAge < 10 ? 60 : (searchAge < 20 ? 40 : 10);
-
-                    if (bestMatch.score >= threshold && user.uid < bestMatch.data.userId) {
-                        const callId = [qRef.id, bestMatch.id].sort().join("_");
-                        attemptAtomicMatch(qRef.id, bestMatch, callId, myEntry);
+                // 1. LISTEN TO MY OWN DOC (MATCH DETECTION)
+                unsubMyDoc = onSnapshot(doc(db, "matchQueue", qRef.id), (snap) => {
+                    const data = snap.data();
+                    if (!snap.exists() || (data && data.status === "disconnected")) {
+                        handleNext();
+                        return;
                     }
-                }
-            };
+                    if (data && data.status === "matched" && data.matchedWith && isSearching && !isConnecting.current) {
+                        isConnecting.current = true;
+                        partnerDocIdRef.current = data.partnerDocId;
+                        console.log("WebRTC: Passive match detected via Firestore update");
+                        setTimeout(() => {
+                            startWebRTC(data.matchedWith, data.matchedWithData, false, data.callId);
+                        }, 1000);
+                    }
+                });
 
-            // Heartbeat: Re-evaluate local pool every 2.5s as searchAge increases (0 Firestore reads)
-            const heartbeat = setInterval(runMatchingLogic, 2500);
+                // 2. LISTEN TO POOL OF SEARCHING PEERS
+                const qPeers = query(collection(db, "matchQueue"), where("status", "==", "searching"), limit(15));
+                unsubPeers = onSnapshot(qPeers, (snap) => {
+                    localPeersPool = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+                    performMatching(qRef.id, myEntry, localPeersPool);
+                });
 
-            return () => {
-                myUnsub?.();
-                peersUnsub?.();
-                clearInterval(heartbeat);
-            };
+                const performMatching = (myId, myData, pool) => {
+                    if (!isSearching || isConnecting.current || pool.length === 0) return;
+
+                    const searchAge = (Date.now() - startTimeRef.current) / 1000;
+                    const others = pool.filter(p => p.id !== myId && p.data.userId !== user.uid && !p.data.isBanned);
+
+                    if (others.length > 0) {
+                        const scored = others.map(p => ({
+                            id: p.id, data: p.data,
+                            score: calculateCompatibility(myData, p.data, searchAge)
+                        })).sort((a, b) => b.score - a.score);
+
+                        const best = scored[0];
+                        const threshold = searchAge < 10 ? 60 : (searchAge < 20 ? 40 : 10);
+
+                        // Initiator rule: Smaller UID triggers the transaction
+                        if (best.score >= threshold && user.uid < best.data.userId) {
+                            const callId = [myId, best.id].sort().join("_");
+                            initiateMatch(myId, best, callId, myData);
+                        }
+                    }
+                };
+
+                const initiateMatch = async (myId, target, cId, myData) => {
+                    if (isConnecting.current) return;
+                    try {
+                        isConnecting.current = true;
+                        await runTransaction(db, async (tx) => {
+                            const me = await tx.get(doc(db, "matchQueue", myId));
+                            const peer = await tx.get(doc(db, "matchQueue", target.id));
+                            if (me.exists() && peer.exists() && me.data().status === "searching" && peer.data().status === "searching") {
+                                tx.update(doc(db, "matchQueue", target.id), { status: "matched", matchedWith: user.uid, matchedWithData: myData, partnerDocId: myId, callId: cId });
+                                tx.update(doc(db, "matchQueue", myId), { status: "matched", matchedWith: target.data.userId, matchedWithData: target.data, partnerDocId: target.id, callId: cId });
+                            } else { throw "Abort: Node state changed"; }
+                        });
+                        console.log("WebRTC: Active match secured via Transaction");
+                        partnerDocIdRef.current = target.id;
+                        startWebRTC(target.data.userId, target.data, true, cId);
+                    } catch (e) {
+                        isConnecting.current = false;
+                    }
+                };
+
+                // 3. HEARTBEAT
+                const startTimeRef = { current: Date.now() };
+                timer = setInterval(() => performMatching(qRef.id, myEntry, localPeersPool), 2500);
+
+            } catch (err) {
+                console.error("MatchSearch Error:", err);
+            }
         };
-        startMatchSearch();
+
+        initializeSearch();
+
+        return () => {
+            unsubMyDoc?.();
+            unsubPeers?.();
+            if (timer) clearInterval(timer);
+        };
     }, [user, isSearching]);
 
     useEffect(() => {
