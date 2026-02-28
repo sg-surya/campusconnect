@@ -100,51 +100,63 @@ export default function DashboardView({ user, profile, onStartMatch }) {
             }} />
 
             <main className="dash-main" style={{ overflowY: "auto", position: "relative", zIndex: 5, height: "100%" }}>
-                <header className="dash-header" style={{ marginBottom: "80px" }}>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", color: "#8b5cf6", letterSpacing: "4px", marginBottom: "20px", textTransform: "uppercase" }}>
-                        SYSTEM_DASHBOARD_V1.0
+                <header className="dash-header" style={{ marginBottom: "100px", position: "relative" }}>
+                    <div style={{ position: "absolute", top: "-40px", left: "0", width: "100px", height: "1px", background: "rgba(139,92,246,0.3)" }} />
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", color: "#8b5cf6", letterSpacing: "6px", marginBottom: "25px", textTransform: "uppercase", fontWeight: 800 }}>
+                        SYSTEM_DASHBOARD_V1.0 // ACCESS_SECURED
                     </div>
-                    <h1 style={{ fontSize: "5rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-4px", lineHeight: 0.85, color: "#fff" }}>
-                        CAMPUS<br /><span style={{ color: "transparent", WebkitTextStroke: "1px rgba(255,255,255,0.2)" }}>CONNECT.</span>
+                    <h1 style={{ fontSize: "6rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-5px", lineHeight: 0.8, color: "#fff", position: "relative" }}>
+                        CAMPUS<br />
+                        <span style={{
+                            color: "transparent",
+                            WebkitTextStroke: "1px rgba(255,255,255,0.15)",
+                            position: "relative",
+                            display: "inline-block"
+                        }}>
+                            CONNECT.
+                            <div style={{ position: "absolute", right: "-40px", bottom: "20px", fontSize: "12px", color: "#8b5cf6", WebkitTextStroke: "0", letterSpacing: "2px", fontWeight: 800 }}>[EST_2024]</div>
+                        </span>
                     </h1>
                 </header>
 
-                <div className="modes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "30px" }}>
+                <div className="modes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "35px" }}>
                     {modes.map((m, i) => (
                         <div key={m.key} className="mode-card" style={{
-                            background: "rgba(15,15,17,0.8)", padding: "40px", border: "1px solid rgba(255,255,255,0.05)",
-                            position: "relative", transition: "0.4s cubic-bezier(0.19, 1, 0.22, 1)", backdropFilter: "blur(10px)",
-                            overflow: "hidden", borderRadius: "12px"
+                            background: "rgba(13,13,14,0.7)", padding: "45px", border: "1px solid rgba(255,255,255,0.06)",
+                            position: "relative", transition: "0.5s cubic-bezier(0.23, 1, 0.32, 1)", backdropFilter: "blur(20px)",
+                            overflow: "hidden",
+                            clipPath: "polygon(35px 0, 100% 0, 100% calc(100% - 35px), calc(100% - 35px) 100%, 0 100%, 0 35px)"
                         }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = "translateY(-5px)";
-                                e.currentTarget.style.borderColor = "rgba(139,92,246,0.3)";
-                                e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(139,92,246,0.05)";
+                                e.currentTarget.style.transform = "translateY(-8px) scale(1.02)";
+                                e.currentTarget.style.borderColor = "rgba(139,92,246,0.5)";
+                                e.currentTarget.style.background = "rgba(20,20,22,0.9)";
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = "translateY(0)";
-                                e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
-                                e.currentTarget.style.boxShadow = "none";
+                                e.currentTarget.style.transform = "translateY(0) scale(1)";
+                                e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                                e.currentTarget.style.background = "rgba(13,13,14,0.7)";
                             }}>
-                            {/* Card Decorative Corners - hide on mobile */}
-                            <div className="card-corner desktop-only" style={{ position: "absolute", top: "-1px", left: "-1px", width: "12px", height: "12px", borderTop: "2px solid #333", borderLeft: "2px solid #333" }} />
-                            <div className="card-corner desktop-only" style={{ position: "absolute", bottom: "-1px", right: "-1px", width: "12px", height: "12px", borderBottom: "2px solid #333", borderRight: "2px solid #333" }} />
+                            {/* Tactical Etched Border Effect */}
+                            <div style={{ position: "absolute", inset: 0, border: "1px solid rgba(139,92,246,0.1)", pointerEvents: "none", zIndex: 1 }} />
 
-                            <div style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: "#444", marginBottom: "12px" }}>0{i + 1} // ACCESS_POINT</div>
-                            <h3 style={{ fontSize: "1.8rem", fontWeight: 900, marginBottom: "12px", textTransform: "uppercase", letterSpacing: "-1px" }}>{m.title}</h3>
-                            <p className="mobile-hide" style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: 1.6, marginBottom: "30px", minHeight: "60px" }}>{m.desc}</p>
+                            <div style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#666", marginBottom: "15px", fontWeight: 800 }}>
+                                <span style={{ color: "#8b5cf6" }}>[{i + 1}]</span> // NODE_ACCESS__{m.key}
+                            </div>
+                            <h3 style={{ fontSize: "2rem", fontWeight: 900, marginBottom: "15px", textTransform: "uppercase", letterSpacing: "-1.5px", color: "#fff" }}>{m.title}</h3>
+                            <p className="mobile-hide" style={{ color: "rgba(255,255,255,0.45)", fontSize: "14px", lineHeight: 1.6, marginBottom: "35px", minHeight: "60px", fontFamily: "'Inter', sans-serif" }}>{m.desc}</p>
 
                             <button onClick={() => triggerMatch(m.key, m.title)} className="match-btn" style={{
-                                border: "none", background: "#fff", color: "#000", padding: "16px 25px",
-                                fontFamily: "'JetBrains Mono', monospace", fontSize: "11px", fontWeight: 900,
-                                width: "100%", textAlign: "left", cursor: "pointer", transition: "0.3s",
-                                textTransform: "uppercase", letterSpacing: "1px",
-                                clipPath: "polygon(5% 0, 100% 0, 100% 70%, 95% 100%, 0 100%, 0 30%)"
+                                border: "1px solid rgba(0,0,0,0.1)", background: "#fff", color: "#000", padding: "18px 30px",
+                                fontFamily: "'JetBrains Mono', monospace", fontSize: "12px", fontWeight: 900,
+                                width: "100%", textAlign: "left", cursor: "pointer", transition: "0.3s cubic-bezier(0.23, 1, 0.32, 1)",
+                                textTransform: "uppercase", letterSpacing: "1.5px",
+                                clipPath: "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)"
                             }}
-                                onMouseEnter={(e) => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; }}>
+                                onMouseEnter={(e) => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.boxShadow = "0 0 20px rgba(139,92,246,0.4)"; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; e.currentTarget.style.boxShadow = "none"; }}>
                                 {btnStates[m.key]?.text || m.btnDefault}
-                                <span style={{ float: "right" }}>→</span>
+                                <span style={{ float: "right", transform: "scale(1.2)" }}>→</span>
                             </button>
                         </div>
                     ))}
@@ -212,18 +224,32 @@ export default function DashboardView({ user, profile, onStartMatch }) {
 
                 .dash-container {
                     display: grid;
-                    grid-template-columns: 1fr 380px;
+                    grid-template-columns: 1fr 390px;
+                    background: #000;
                 }
                 .dash-main {
-                    padding: 60px;
+                    padding: 80px 60px;
+                    background: #000;
                 }
                 .dash-sidebar {
-                    background: rgba(8,8,9,0.95);
-                    border-left: 1px solid rgba(255,255,255,0.05);
-                    padding: 60px 40px;
+                    background: #050506;
+                    border-left: 2px solid #111;
+                    padding: 60px 45px;
                     display: flex;
                     flex-direction: column;
-                    backdrop-filter: blur(40px);
+                    backdrop-filter: blur(50px);
+                    position: relative;
+                    overflow-y: auto;
+                }
+                .dash-sidebar::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background-image: 
+                        linear-gradient(rgba(139,92,246,0.02) 1.5px, transparent 1.5px),
+                        linear-gradient(90deg, rgba(139,92,246,0.02) 1.5px, transparent 1.5px);
+                    background-size: 40px 40px;
+                    pointer-events: none;
                 }
 
                 @media (max-width: 768px) {
