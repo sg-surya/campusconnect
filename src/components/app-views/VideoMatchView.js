@@ -150,26 +150,18 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         peer.ontrack = (e) => {
             console.log("WebRTC: Remote track received:", e.track.kind);
             if (remoteVideoRef.current) {
-                // Initialize srcObject with a new MediaStream if it doesn't exist
-                if (!remoteVideoRef.current.srcObject) {
-                    remoteVideoRef.current.srcObject = new MediaStream();
-                }
-
-                // Add the new track to the existing stream
-                const stream = remoteVideoRef.current.srcObject;
-                if (!stream.getTracks().includes(e.track)) {
-                    stream.addTrack(e.track);
-                    console.log(`WebRTC: Attached remote ${e.track.kind} track`);
-                }
-
-                // Force video playback nudge
-                setTimeout(() => {
-                    if (remoteVideoRef.current) {
-                        remoteVideoRef.current.play()
-                            .then(() => console.log("WebRTC: Remote playback active"))
-                            .catch(err => console.warn("WebRTC: Playback waiting for interaction", err.name));
+                if (e.streams && e.streams[0]) {
+                    remoteVideoRef.current.srcObject = e.streams[0];
+                } else {
+                    if (!remoteVideoRef.current.srcObject) {
+                        remoteVideoRef.current.srcObject = new MediaStream();
                     }
-                }, 150);
+                    remoteVideoRef.current.srcObject.addTrack(e.track);
+                }
+
+                remoteVideoRef.current.oncanplay = () => {
+                    remoteVideoRef.current?.play().catch(() => { });
+                };
             }
         };
 
@@ -178,34 +170,40 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             if (e.candidate) addDoc(collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON()).catch(() => { });
         };
 
+        let remoteDescSet = false;
+
         if (isCaller) {
             const offer = await peer.createOffer();
             await peer.setLocalDescription(offer);
             await setDoc(callDoc, { offer: { sdp: offer.sdp, type: offer.type } });
-            onSnapshot(callDoc, async (s) => {
+
+            const unsubCall = onSnapshot(callDoc, async (s) => {
                 const d = s.data();
-                if (d?.answer && peer.signalingState === "have-local-offer") {
-                    await peer.setRemoteDescription(new RTCSessionDescription(d.answer));
+                if (d?.answer && !remoteDescSet && peer.signalingState === "have-local-offer") {
+                    remoteDescSet = true;
+                    await peer.setRemoteDescription(new RTCSessionDescription(d.answer)).catch(console.error);
                 }
             });
-            onSnapshot(collection(callDoc, "calleeCandidates"), (s) => {
+
+            const unsubIce = onSnapshot(collection(callDoc, "calleeCandidates"), (s) => {
                 s.docChanges().forEach(async (c) => {
                     if (c.type === "added") await peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
                 });
             });
+            // Cleanup listeners on peer closure or next
         } else {
-            let sdpSet = false;
-            onSnapshot(callDoc, async (s) => {
+            const unsubCall = onSnapshot(callDoc, async (s) => {
                 const d = s.data();
-                if (d?.offer && !sdpSet) {
-                    sdpSet = true;
-                    await peer.setRemoteDescription(new RTCSessionDescription(d.offer));
+                if (d?.offer && !remoteDescSet) {
+                    remoteDescSet = true;
+                    await peer.setRemoteDescription(new RTCSessionDescription(d.offer)).catch(console.error);
                     const ans = await peer.createAnswer();
                     await peer.setLocalDescription(ans);
                     await updateDoc(callDoc, { answer: { sdp: ans.sdp, type: ans.type } });
                 }
             });
-            onSnapshot(collection(callDoc, "callerCandidates"), (s) => {
+
+            const unsubIce = onSnapshot(collection(callDoc, "callerCandidates"), (s) => {
                 s.docChanges().forEach(async (c) => {
                     if (c.type === "added") await peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
                 });
@@ -423,14 +421,9 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 <div className="video-grid" style={{ flex: 1, gap: "1px", background: "#1a1a1a" }}>
                     <div className="remote-video-wrap" style={{ position: "relative", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                         <video
-                            key="remote-video-el"
                             ref={remoteVideoRef}
                             autoPlay
                             playsInline
-                            onLoadedMetadata={() => {
-                                console.log(`WebRTC: Remote video metadata loaded: ${remoteVideoRef.current?.videoWidth}x${remoteVideoRef.current?.videoHeight}`);
-                                remoteVideoRef.current?.play().catch(() => { });
-                            }}
                             style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", background: "#000" }}
                         />
                         {/* CC Watermark - Remote */}
@@ -459,7 +452,6 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
                     <div className="local-video-wrap" style={{ position: "relative", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                         <video
-                            key="local-video-el"
                             ref={videoRef}
                             autoPlay
                             playsInline
