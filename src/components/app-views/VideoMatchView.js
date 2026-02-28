@@ -297,34 +297,43 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 }
             };
 
+            let localPeersPool = [];
             const qPeers = query(collection(db, "matchQueue"), where("status", "==", "searching"), limit(15));
             const peersUnsub = onSnapshot(qPeers, (snap) => {
-                if (!isSearching || isConnecting.current) return;
+                localPeersPool = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+                runMatchingLogic(); // Check immediately on update
+            });
+
+            const runMatchingLogic = () => {
+                if (!isSearching || isConnecting.current || localPeersPool.length === 0) return;
 
                 const searchAge = (Date.now() - startTime) / 1000;
-                const others = snap.docs.filter(d => d.id !== qRef.id && d.data().userId !== user.uid && !d.data().isBanned);
+                const others = localPeersPool.filter(p => p.id !== qRef.id && p.data.userId !== user.uid && !p.data.isBanned);
 
                 if (others.length > 0) {
-                    const scoredPeers = others.map(doc => ({
-                        id: doc.id,
-                        data: doc.data(),
-                        score: calculateCompatibility(myEntry, doc.data(), searchAge)
+                    const scoredPeers = others.map(p => ({
+                        id: p.id,
+                        data: p.data,
+                        score: calculateCompatibility(myEntry, p.data, searchAge)
                     })).sort((a, b) => b.score - a.score);
 
                     const bestMatch = scoredPeers[0];
                     const threshold = searchAge < 10 ? 60 : (searchAge < 20 ? 40 : 10);
 
-                    // Only the user with smaller ID initiates the match to prevent collisions
                     if (bestMatch.score >= threshold && user.uid < bestMatch.data.userId) {
                         const callId = [qRef.id, bestMatch.id].sort().join("_");
                         attemptAtomicMatch(qRef.id, bestMatch, callId, myEntry);
                     }
                 }
-            });
+            };
+
+            // Heartbeat: Re-evaluate local pool every 2.5s as searchAge increases (0 Firestore reads)
+            const heartbeat = setInterval(runMatchingLogic, 2500);
 
             return () => {
-                if (myUnsub) myUnsub();
-                if (peersUnsub) peersUnsub();
+                myUnsub?.();
+                peersUnsub?.();
+                clearInterval(heartbeat);
             };
         };
         startMatchSearch();
