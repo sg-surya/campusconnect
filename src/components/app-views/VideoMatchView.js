@@ -288,7 +288,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         })).sort((a, b) => b.score - a.score);
 
                         const best = scored[0];
-                        const threshold = searchAge < 10 ? 60 : (searchAge < 20 ? 40 : 10);
+                        const threshold = searchAge < 5 ? 40 : (searchAge < 10 ? 20 : 0);
 
                         // Initiator rule: Smaller UID triggers the transaction
                         if (best.score >= threshold && user.uid < best.data.userId) {
