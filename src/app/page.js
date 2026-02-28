@@ -43,6 +43,8 @@ export default function LandingPage() {
       }
     };
     fetchStats();
+    const interval = setInterval(fetchStats, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -159,7 +161,13 @@ export default function LandingPage() {
         zIndex: -1, pointerEvents: "none"
       }} />
 
-      <div className="main-wrapper" style={{ display: "flex", minHeight: "100vh", width: "100%", overflowX: "hidden" }}>
+      <div className="main-wrapper" style={{
+        display: "flex",
+        height: "100vh",
+        width: "100%",
+        overflow: "hidden",
+        position: "relative"
+      }}>
 
         {/* ══ LEFT SIDEBAR ══ */}
         <aside className="sidebar-nav" style={{
@@ -188,7 +196,13 @@ export default function LandingPage() {
         </aside>
 
         {/* ══ MAIN CONTENT ══ */}
-        <main style={{ flex: 1, overflowX: "hidden" }}>
+        <main id="main-scroll" style={{
+          flex: 1,
+          height: "100vh",
+          overflowY: "auto",
+          overflowX: "hidden",
+          scrollBehavior: "smooth"
+        }}>
 
           {/* Header */}
           <header style={{
@@ -713,7 +727,8 @@ export default function LandingPage() {
             flex-direction: column !important; 
             padding-top: 0 !important; 
             background: #000 !important;
-            overflow-x: hidden !important;
+            height: auto !important;
+            overflow-y: auto !important;
           }
           .sidebar-nav { display: none !important; }
           
