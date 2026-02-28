@@ -420,7 +420,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                                 console.log(`WebRTC: Remote video metadata loaded: ${remoteVideoRef.current?.videoWidth}x${remoteVideoRef.current?.videoHeight}`);
                                 remoteVideoRef.current?.play().catch(() => { });
                             }}
-                            style={{ width: "100%", height: "100%", objectFit: "cover", background: "#000" }}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", background: "#000" }}
                         />
                         {/* CC Watermark - Remote */}
                         {!isSearching && (
