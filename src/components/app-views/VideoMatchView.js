@@ -23,6 +23,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     const [isCameraOff, setIsCameraOff] = useState(false);
     const [safetyBlur, setSafetyBlur] = useState(true);
     const [isChatOpen, setIsChatOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     const videoRef = useRef(null);
     const remoteVideoRef = useRef(null);
@@ -336,6 +337,16 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 timestamp: d.data().createdAt?.toMillis() || Date.now(),
                 sender: d.data().senderId === user.uid ? "me" : "partner"
             })).sort((a, b) => a.timestamp - b.timestamp);
+
+            // Unread Count Logic
+            const isDesktop = typeof window !== 'undefined' && window.innerWidth > 1024;
+            if (!isChatOpen && !isDesktop) {
+                const newMsgs = snap.docChanges().filter(c => c.type === "added" && c.doc.data().senderId !== user.uid);
+                if (newMsgs.length > 0) setUnreadCount(prev => prev + newMsgs.length);
+            } else {
+                setUnreadCount(0);
+            }
+
             setMessages(prev => [...prev.filter(m => m.sender === "system"), ...msgs]);
         });
 
@@ -349,7 +360,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             msgUnsub();
             matchUnsub();
         };
-    }, [currentCallId, user]);
+    }, [currentCallId, user, isChatOpen]);
 
     const sendMessage = async (e) => {
         e.preventDefault();
@@ -364,6 +375,11 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         return () => clearInterval(t);
     }, [isSearching]);
 
+    useEffect(() => {
+        if (isChatOpen || (typeof window !== 'undefined' && window.innerWidth > 1024)) {
+            setUnreadCount(0);
+        }
+    }, [isChatOpen]);
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
     return (
@@ -477,8 +493,21 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         <button onClick={() => setIsCameraOff(!isCameraOff)} style={{ background: isCameraOff ? "#ff4757" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", padding: "12px", borderRadius: "2px", cursor: "pointer" }}>
                             <Icons.Camera />
                         </button>
-                        <button className="mobile-chat-toggle" onClick={() => setIsChatOpen(true)} style={{ display: "none", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", padding: "12px", borderRadius: "2px", cursor: "pointer" }}>
+                        <button className="mobile-chat-toggle" onClick={() => setIsChatOpen(true)} style={{
+                            display: "none", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                            color: "#fff", padding: "12px", borderRadius: "2px", cursor: "pointer", position: "relative"
+                        }}>
                             <Icons.Chat />
+                            {unreadCount > 0 && (
+                                <span style={{
+                                    position: "absolute", top: "-6px", right: "-6px", background: "#8b5cf6",
+                                    color: "#fff", fontSize: "10px", fontWeight: 900, minWidth: "18px", height: "18px",
+                                    borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center",
+                                    border: "2px solid #000", boxShadow: "0 0 10px rgba(139,92,246,0.5)"
+                                }}>
+                                    {unreadCount}
+                                </span>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -644,6 +673,26 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     }
                     .chat-sidebar {
                         display: none;
+                        position: fixed;
+                        bottom: 0; left: 0; right: 0;
+                        width: 100% !important;
+                        height: 75vh;
+                        z-index: 250;
+                        margin: 0 !important;
+                        background: #0d0d0e;
+                        border-top: 2px solid #8b5cf6;
+                        border-radius: 30px 30px 0 0;
+                        clip-path: none !important;
+                    }
+                    .chat-sidebar.mobile-open {
+                        display: flex !important;
+                    }
+                    .mobile-chat-toggle {
+                        display: flex !important;
+                    }
+                    .chat-backdrop {
+                        display: block !important;
+                        z-index: 240 !important;
                     }
                 }
 
@@ -688,20 +737,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         border-radius: 0 !important;
                         border: 1.5px solid #1a1a1b !important;
                         clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px) !important;
-                    }
-                    .chat-sidebar.mobile-open {
-                        display: flex !important;
-                        position: fixed !important;
-                        bottom: 0 !important;
-                        left: 0 !important;
-                        right: 0 !important;
-                        top: auto !important;
-                        width: 100% !important;
-                        height: 75vh !important;
-                        z-index: 210 !important;
-                        background: #0d0d0e !important;
-                        border-top: 2px solid #8b5cf6 !important;
-                        border-radius: 30px 30px 0 0 !important;
+                        z-index: 230 !important;
                     }
                 }
             `}</style>
