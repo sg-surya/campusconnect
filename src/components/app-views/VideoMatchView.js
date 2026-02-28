@@ -83,7 +83,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     const cleanupQueue = async () => {
         isConnecting.current = false;
         if (partnerDocIdRef.current) {
-            try { await updateDoc(doc(db, "matchQueue", partnerDocIdRef.current), { status: "disconnected" }).catch(() => { }); } catch (e) { }
+            try { await deleteDoc(doc(db, "matchQueue", partnerDocIdRef.current)).catch(() => { }); } catch (e) { }
             partnerDocIdRef.current = null;
         }
         if (queueDocRef.current) {
@@ -93,8 +93,11 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         if (pc.current) { pc.current.close(); pc.current = null; }
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
         if (currentCallIdRef.current) {
-            try { await deleteDoc(doc(db, "calls", currentCallIdRef.current)); } catch (e) { }
-            currentCallIdRef.current = null;
+            try {
+                const callId = currentCallIdRef.current;
+                currentCallIdRef.current = null;
+                await deleteDoc(doc(db, "calls", callId)).catch(() => { });
+            } catch (e) { }
         }
         setCurrentCallId(null);
     };
@@ -108,7 +111,14 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             } catch (err) { }
         }
         getCamera();
+        const handleTabClose = () => {
+            // Trigger cleanup synchronously as possible
+            cleanupQueue();
+        };
+        window.addEventListener('beforeunload', handleTabClose);
+
         return () => {
+            window.removeEventListener('beforeunload', handleTabClose);
             cleanupQueue();
             if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
         };
@@ -244,30 +254,55 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     handleNext();
                     return;
                 }
+
+                // ADMIN INTERCEPTION & STANDARD MATCHING
                 if (data && data.status === "matched" && data.matchedWith && isSearching && !isConnecting.current) {
                     isConnecting.current = true;
                     partnerDocIdRef.current = data.partnerDocId;
+
+                    if (data.adminForced) console.log("ADMIN_INTERCEPTION: Direct match assigned by Control Room.");
+
                     setTimeout(() => {
                         startWebRTC(data.matchedWith, data.matchedWithData, false, data.callId);
                     }, 1000);
                 }
             });
 
-            const searchForPeers = async () => {
+            const attemptAtomicMatch = async (myRefId, bestMatch, callId, myEntry) => {
+                if (isConnecting.current) return;
+                try {
+                    isConnecting.current = true;
+                    await runTransaction(db, async (transaction) => {
+                        const myDoc = await transaction.get(doc(db, "matchQueue", myRefId));
+                        const partnerDoc = await transaction.get(doc(db, "matchQueue", bestMatch.id));
+
+                        if (myDoc.exists() && partnerDoc.exists() &&
+                            myDoc.data().status === "searching" &&
+                            partnerDoc.data().status === "searching") {
+
+                            transaction.update(doc(db, "matchQueue", bestMatch.id), {
+                                status: "matched", matchedWith: user.uid,
+                                matchedWithData: myEntry, partnerDocId: myRefId, callId
+                            });
+                            transaction.update(doc(db, "matchQueue", myRefId), {
+                                status: "matched", matchedWith: bestMatch.data.userId,
+                                matchedWithData: bestMatch.data, partnerDocId: bestMatch.id, callId
+                            });
+                        } else { throw "Nodes unavailable"; }
+                    });
+                    partnerDocIdRef.current = bestMatch.id;
+                    startWebRTC(bestMatch.data.userId, bestMatch.data, true, callId);
+                } catch (e) {
+                    isConnecting.current = false;
+                }
+            };
+
+            const qPeers = query(collection(db, "matchQueue"), where("status", "==", "searching"), limit(15));
+            const peersUnsub = onSnapshot(qPeers, (snap) => {
                 if (!isSearching || isConnecting.current) return;
 
-                // SHADOW BAN ENFORCEMENT
-                if (profile?.isBanned) return;
-
                 const searchAge = (Date.now() - startTime) / 1000;
-                const q = query(collection(db, "matchQueue"), where("status", "==", "searching"), limit(20));
-                const snap = await getDocs(q);
-
-                // Filter out banned nodes and self
-                const others = snap.docs.filter(d => {
-                    const data = d.data();
-                    return d.id !== qRef.id && data.userId !== user.uid && !data.isBanned;
-                });
+                const others = snap.docs.filter(d => d.id !== qRef.id && d.data().userId !== user.uid && !d.data().isBanned);
 
                 if (others.length > 0) {
                     const scoredPeers = others.map(doc => ({
@@ -279,59 +314,20 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     const bestMatch = scoredPeers[0];
                     const threshold = searchAge < 10 ? 60 : (searchAge < 20 ? 40 : 10);
 
+                    // Only the user with smaller ID initiates the match to prevent collisions
                     if (bestMatch.score >= threshold && user.uid < bestMatch.data.userId) {
                         const callId = [qRef.id, bestMatch.id].sort().join("_");
-                        try {
-                            isConnecting.current = true;
-
-                            // Use a transaction to ensure atomic matching
-                            await runTransaction(db, async (transaction) => {
-                                const myDoc = await transaction.get(doc(db, "matchQueue", qRef.id));
-                                const partnerDoc = await transaction.get(doc(db, "matchQueue", bestMatch.id));
-
-                                if (!myDoc.exists() || !partnerDoc.exists()) {
-                                    throw "Nodes disappeared";
-                                }
-
-                                if (myDoc.data().status !== "searching" || partnerDoc.data().status !== "searching") {
-                                    throw "Node already matched";
-                                }
-
-                                // Update both nodes to matched status
-                                transaction.update(doc(db, "matchQueue", bestMatch.id), {
-                                    status: "matched",
-                                    matchedWith: user.uid,
-                                    matchedWithData: myEntry,
-                                    partnerDocId: qRef.id,
-                                    callId
-                                });
-
-                                transaction.update(doc(db, "matchQueue", qRef.id), {
-                                    status: "matched",
-                                    matchedWith: bestMatch.data.userId,
-                                    matchedWithData: bestMatch.data,
-                                    partnerDocId: bestMatch.id,
-                                    callId
-                                });
-                            });
-
-                            console.log("WebRTC: Atomic match secured");
-                            partnerDocIdRef.current = bestMatch.id;
-                            startWebRTC(bestMatch.data.userId, bestMatch.data, true, callId);
-                        } catch (e) {
-                            console.warn("WebRTC: Match attempt failed or race condition detected", e);
-                            isConnecting.current = false;
-                        }
+                        attemptAtomicMatch(qRef.id, bestMatch, callId, myEntry);
                     }
                 }
+            });
+
+            return () => {
+                if (myUnsub) myUnsub();
+                if (peersUnsub) peersUnsub();
             };
-            searchInterval = setInterval(searchForPeers, 2500);
         };
         startMatchSearch();
-        return () => {
-            if (myUnsub) myUnsub();
-            if (searchInterval) clearInterval(searchInterval);
-        };
     }, [user, isSearching]);
 
     useEffect(() => {
