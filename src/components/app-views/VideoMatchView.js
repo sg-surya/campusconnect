@@ -594,7 +594,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         Next Match →
                     </button>
 
-                    <button onClick={onEnd} style={{
+                    <button onClick={async () => { await cleanupFull(); onEnd(); }} style={{
                         background: "transparent", color: "#ff4757", border: "1px solid #333", padding: "12px 25px", cursor: "pointer",
                         textTransform: "uppercase", fontSize: "11px", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace"
                     }}>
