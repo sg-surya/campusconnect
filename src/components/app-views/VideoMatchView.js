@@ -86,32 +86,47 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     };
 
     const handleNext = () => {
-        cleanupQueue();
+        // Guard against multiple simultaneous calls
+        if (isCleaningUp.current) return;
+        isCleaningUp.current = true;
+        cleanupPeer();
         setIsSearching(true);
         setPartner(null);
         setCurrentCallId(null);
         setMessages([]);
         setChatTime(0);
         setSafetyBlur(true);
+        // Release the guard after a tick so the search useEffect can run
+        setTimeout(() => { isCleaningUp.current = false; }, 300);
     };
 
-    const cleanupQueue = async () => {
+    const isCleaningUp = useRef(false);
+
+    // Soft cleanup: only close peer connection and call data, keep camera alive
+    const cleanupPeer = async () => {
         isConnecting.current = false;
-        // Signal partner FIRST by updating their doc status before deletion
+        // Signal partner by updating their doc status before deletion
         if (partnerDocIdRef.current) {
             try {
                 await updateDoc(doc(db, "matchQueue", partnerDocIdRef.current), { status: "disconnected" }).catch(() => { });
             } catch (e) { }
-            // Small delay to let the partner's listener fire before we delete
-            await new Promise(r => setTimeout(r, 500));
-            try { await deleteDoc(doc(db, "matchQueue", partnerDocIdRef.current)).catch(() => { }); } catch (e) { }
             partnerDocIdRef.current = null;
         }
+        // Delete own queue doc so search useEffect creates a fresh one
         if (queueDocRef.current) {
             try { await deleteDoc(doc(db, "matchQueue", queueDocRef.current)).catch(() => { }); } catch (e) { }
             queueDocRef.current = null;
         }
-        if (pc.current) { pc.current.close(); pc.current = null; }
+        // Close peer connection but keep camera stream
+        if (pc.current) {
+            // Remove event handlers before closing to prevent re-triggering handleNext
+            pc.current.onconnectionstatechange = null;
+            pc.current.oniceconnectionstatechange = null;
+            pc.current.ontrack = null;
+            pc.current.onicecandidate = null;
+            pc.current.close();
+            pc.current = null;
+        }
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
         if (currentCallIdRef.current) {
             try {
@@ -121,6 +136,15 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             } catch (e) { }
         }
         setCurrentCallId(null);
+    };
+
+    // Hard cleanup: for full EXIT (component unmount or Exit button)
+    const cleanupFull = async () => {
+        await cleanupPeer();
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(t => t.stop());
+            streamRef.current = null;
+        }
     };
 
     useEffect(() => {
@@ -133,15 +157,13 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         }
         getCamera();
         const handleTabClose = () => {
-            // Trigger cleanup synchronously as possible
-            cleanupQueue();
+            cleanupFull();
         };
         window.addEventListener('beforeunload', handleTabClose);
 
         return () => {
             window.removeEventListener('beforeunload', handleTabClose);
-            cleanupQueue();
-            if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+            cleanupFull();
         };
     }, []);
 
@@ -176,7 +198,6 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 const stream = (e.streams && e.streams[0]) || new MediaStream([e.track]);
                 if (remoteVideoRef.current.srcObject !== stream) {
                     remoteVideoRef.current.srcObject = stream;
-                    console.log(`WebRTC: Attached remote ${e.track.kind} track`);
                 }
                 remoteVideoRef.current.play().catch(() => { });
             }
@@ -184,22 +205,21 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
         // DISCONNECT DETECTION: monitor WebRTC connection state
         peer.onconnectionstatechange = () => {
+            if (pc.current !== peer) return; // Stale peer guard
             const state = peer.connectionState;
             console.log("WebRTC: Connection state ->", state);
             if (state === "disconnected" || state === "failed" || state === "closed") {
-                console.log("WebRTC: Peer disconnected, triggering handleNext");
                 handleNext();
             }
         };
 
         peer.oniceconnectionstatechange = () => {
+            if (pc.current !== peer) return; // Stale peer guard
             const state = peer.iceConnectionState;
             console.log("WebRTC: ICE state ->", state);
             if (state === "disconnected" || state === "failed") {
-                // Give a brief window for recovery, then force disconnect
                 setTimeout(() => {
-                    if (pc.current && (pc.current.iceConnectionState === "disconnected" || pc.current.iceConnectionState === "failed")) {
-                        console.log("WebRTC: ICE connection lost, triggering handleNext");
+                    if (pc.current === peer && (peer.iceConnectionState === "disconnected" || peer.iceConnectionState === "failed")) {
                         handleNext();
                     }
                 }, 3000);
