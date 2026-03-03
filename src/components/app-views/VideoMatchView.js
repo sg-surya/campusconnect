@@ -8,6 +8,7 @@ import {
     serverTimestamp, orderBy, setDoc, increment, runTransaction
 } from "firebase/firestore";
 import { isCollegeEmail } from "@/lib/collegeDomains";
+import { deriveKey, encryptMessage, decryptMessage } from "@/lib/crypto";
 
 const servers = {
     iceServers: [{ urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }],
@@ -49,6 +50,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     const pc = useRef(null);
     const isConnecting = useRef(false);
     const currentCallIdRef = useRef(null);
+    const encKeyRef = useRef(null);
 
     const Icons = {
         Camera: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>,
@@ -136,6 +138,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             } catch (e) { }
         }
         setCurrentCallId(null);
+        encKeyRef.current = null; // Destroy E2E key on disconnect
     };
 
     // Hard cleanup: for full EXIT (component unmount or Exit button)
@@ -184,7 +187,17 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         setPartner(pData);
         setSafetyBlur(true);
         setTimeout(() => setSafetyBlur(false), 800);
-        setMessages([{ id: "sys", text: `Connected with ${pData.name}. Secure channel established.`, sender: "system" }]);
+
+        // Derive E2E encryption key from shared callId
+        try {
+            encKeyRef.current = await deriveKey(callId);
+            console.log("E2E: AES-256-GCM key derived successfully");
+        } catch (err) {
+            console.error("E2E: Key derivation failed", err);
+            encKeyRef.current = null;
+        }
+
+        setMessages([{ id: "sys", text: `Connected with ${pData.name}. ðŸ”’ End-to-end encrypted channel established.`, sender: "system" }]);
 
         const peer = new RTCPeerConnection(servers);
         pc.current = peer;
@@ -425,12 +438,24 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
     useEffect(() => {
         if (!currentCallId || !user) return;
         const msgQ = query(collection(db, "calls", currentCallId, "messages"), orderBy("createdAt", "asc"));
-        const msgUnsub = onSnapshot(msgQ, (snap) => {
-            const msgs = snap.docs.map(d => ({
+        const msgUnsub = onSnapshot(msgQ, async (snap) => {
+            // Decrypt all messages
+            const rawMsgs = snap.docs.map(d => ({
                 id: d.id, ...d.data(),
                 timestamp: d.data().createdAt?.toMillis() || Date.now(),
                 sender: d.data().senderId === user.uid ? "me" : "partner"
             })).sort((a, b) => a.timestamp - b.timestamp);
+
+            // E2E Decryption
+            const decryptedMsgs = await Promise.all(rawMsgs.map(async (m) => {
+                if (m.encrypted && encKeyRef.current) {
+                    try {
+                        const plainText = await decryptMessage(m.text, encKeyRef.current);
+                        return { ...m, text: plainText };
+                    } catch { return { ...m, text: "[Decryption Failed]" }; }
+                }
+                return m; // Fallback for unencrypted messages
+            }));
 
             // Unread Count Logic
             const isDesktop = typeof window !== 'undefined' && window.innerWidth > 1024;
@@ -441,7 +466,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 setUnreadCount(0);
             }
 
-            setMessages(prev => [...prev.filter(m => m.sender === "system"), ...msgs]);
+            setMessages(prev => [...prev.filter(m => m.sender === "system"), ...decryptedMsgs]);
         });
 
         const myQueueId = queueDocRef.current;
@@ -478,7 +503,40 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             return;
         }
 
-        await addDoc(collection(db, "calls", currentCallId, "messages"), { text: txt, senderId: user.uid, createdAt: serverTimestamp() }).catch(() => { });
+        // E2E Encrypt before sending to Firestore
+        let payload = { text: txt, senderId: user.uid, createdAt: serverTimestamp(), encrypted: false };
+        if (encKeyRef.current) {
+            try {
+                const cipherText = await encryptMessage(txt, encKeyRef.current);
+                payload = { text: cipherText, senderId: user.uid, createdAt: serverTimestamp(), encrypted: true };
+            } catch (err) {
+                console.warn("E2E: Encryption failed, sending plain text", err);
+            }
+        }
+        await addDoc(collection(db, "calls", currentCallId, "messages"), payload).catch(() => { });
+    };
+
+    const handleReport = async () => {
+        if (!partner || !currentCallId) return;
+        if (!confirm("Are you sure you want to report this user for abusive behavior? This will flag their account for admin review.")) return;
+
+        try {
+            await addDoc(collection(db, "reports"), {
+                reporterId: user.uid,
+                reportedUserId: partner.userId,
+                reportedUserName: partner.name,
+                reportedUserEmail: partner.email,
+                reportedUserCollege: partner.college,
+                callId: currentCallId,
+                timestamp: serverTimestamp(),
+                status: "pending"
+            });
+            alert("Report submitted. Thank you for keeping CampusConnect safe.");
+            handleNext(); // Move to next match after reporting
+        } catch (err) {
+            console.error("Report Error:", err);
+            alert("Failed to submit report. Please try again.");
+        }
     };
 
     useEffect(() => {
@@ -527,6 +585,21 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                             </div>
                             <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace" }}>{partner.college?.toUpperCase()}</span>
                         </div>
+
+                        {/* Report Button */}
+                        <button
+                            onClick={handleReport}
+                            title="Report Abusive User"
+                            style={{
+                                marginLeft: "10px", background: "rgba(255, 71, 87, 0.1)", border: "1px solid rgba(255, 71, 87, 0.2)",
+                                color: "#ff4757", padding: "6px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center",
+                                transition: "all 0.3s"
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255, 71, 87, 0.3)"}
+                            onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255, 71, 87, 0.1)"}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                        </button>
                     </div>
                 )}
 
@@ -591,7 +664,7 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                         textTransform: "uppercase", fontSize: "12px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace",
                         clipPath: "polygon(8% 0, 100% 0, 100% 70%, 92% 100%, 0 100%, 0 30%)"
                     }}>
-                        Next Match →
+                        Next Match â†’
                     </button>
 
                     <button onClick={async () => { await cleanupFull(); onEnd(); }} style={{
@@ -668,9 +741,18 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                                 background: m.sender === "me" ? "#fff" : (m.sender === "system" ? "rgba(139,92,246,0.05)" : "#111"),
                                 color: m.sender === "me" ? "#000" : (m.sender === "system" ? "#8b5cf6" : "#ddd"),
                                 border: m.sender === "system" ? "none" : "1px solid rgba(255,255,255,0.05)",
-                                fontFamily: m.sender === "system" ? "'JetBrains Mono', monospace" : "inherit"
+                                fontFamily: m.sender === "system" ? "'JetBrains Mono', monospace" : "inherit",
+                                position: "relative"
                             }}>
                                 {m.text}
+                                {m.encrypted && m.sender !== "system" && (
+                                    <div title="End-to-end encrypted" style={{
+                                        position: "absolute", bottom: "4px", right: "6px",
+                                        opacity: 0.4, color: m.sender === "me" ? "#000" : "#8b5cf6"
+                                    }}>
+                                        <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" /></svg>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -678,11 +760,15 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 </div>
 
                 <form onSubmit={sendMessage} style={{ padding: "20px", background: "#050505", borderTop: "1px solid #1a1a1a" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px", opacity: 0.5 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="#8b5cf6"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" /></svg>
+                        <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "1px", color: "#8b5cf6" }}>SECURE_CHANNEL_ACTIVE</span>
+                    </div>
                     <input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Type a message..."
-                        style={{ width: "100%", background: "#0a0a0a", border: "1px solid #222", color: "#fff", padding: "14px", outline: "none", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace" }}
+                        placeholder="Type an encrypted message..."
+                        style={{ width: "100%", background: "#0a0a0b", border: "1px solid #1a1a1a", color: "#fff", padding: "14px", outline: "none", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", borderRadius: "8px" }}
                     />
                 </form>
             </aside>

@@ -18,6 +18,31 @@ export async function POST(request) {
       }, { status: 403 });
     }
 
+    // --- RATE LIMITING ---
+    const { getDoc, doc: fsDoc, updateDoc } = await import("firebase/firestore");
+    const rateRef = fsDoc(db, "otpAttempts", email);
+    const rateSnap = await getDoc(rateRef);
+    const now = Date.now();
+
+    if (rateSnap.exists()) {
+      const data = rateSnap.data();
+      const lastAttempt = data.lastAttempt || 0;
+      const windowTime = 10 * 60 * 1000; // 10 minutes window
+
+      if (now - lastAttempt < windowTime) {
+        if (data.count >= 3) {
+          return Response.json({ error: "Too many requests. Please wait 10 minutes before trying again." }, { status: 429 });
+        }
+        await updateDoc(rateRef, { count: data.count + 1, lastAttempt: now });
+      } else {
+        // Window expired, reset count
+        await setDoc(rateRef, { count: 1, lastAttempt: now });
+      }
+    } else {
+      await setDoc(rateRef, { count: 1, lastAttempt: now });
+    }
+    // --- END RATE LIMITING ---
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes

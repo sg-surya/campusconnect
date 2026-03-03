@@ -172,31 +172,49 @@ export default function DashboardView({ user, profile, onStartMatch }) {
                         clipPath: "polygon(0 0, 90% 0, 100% 10%, 100% 100%, 10% 100%, 0 90%)"
                     }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                            <div style={{ fontSize: "2rem", fontWeight: 900, color: "#fff", letterSpacing: "-1px" }}>{displayName}</div>
-                            {isCollegeEmail(user?.email) && (
-                                <div title="Verified Student" style={{ color: "#8b5cf6", background: "rgba(139,92,246,0.1)", padding: "4px", borderRadius: "6px" }}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 7l11 5 9-4.09V17h2V7L12 2z" /><path d="M12 14l-7-3.22V15a7 7 0 0 0 14 0v-4.22L12 14z" /></svg>
-                                </div>
+                            {profile?.name ? (
+                                <>
+                                    <div style={{ fontSize: "2rem", fontWeight: 900, color: "#fff", letterSpacing: "-1px" }}>{displayName}</div>
+                                    {isCollegeEmail(user?.email) && (
+                                        <div title="Verified Student" style={{ color: "#8b5cf6", background: "rgba(139,92,246,0.1)", padding: "4px", borderRadius: "6px" }}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 7l11 5 9-4.09V17h2V7L12 2z" /><path d="M12 14l-7-3.22V15a7 7 0 0 0 14 0v-4.22L12 14z" /></svg>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div style={{ height: "40px", width: "180px", background: "rgba(255,255,255,0.05)", animation: "pulse-skeleton 1.5s infinite" }} />
                             )}
                         </div>
-                        <div style={{ fontSize: "11px", color: "#8b5cf6", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase" }}>{displayYear}</div>
-                        <div style={{ fontSize: "11px", color: "#444", marginTop: "12px", lineHeight: 1.5 }}>{displayCollege}</div>
+                        {profile?.year ? (
+                            <div style={{ fontSize: "11px", color: "#8b5cf6", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase" }}>{displayYear}</div>
+                        ) : (
+                            <div style={{ height: "12px", width: "100px", background: "rgba(255,255,255,0.03)", marginTop: "8px", animation: "pulse-skeleton 1.5s infinite" }} />
+                        )}
+                        {profile?.college ? (
+                            <div style={{ fontSize: "11px", color: "#444", marginTop: "12px", lineHeight: 1.5 }}>{displayCollege}</div>
+                        ) : (
+                            <div style={{ height: "12px", width: "140px", background: "rgba(255,255,255,0.02)", marginTop: "8px", animation: "pulse-skeleton 1.5s infinite" }} />
+                        )}
                     </div>
                 </div>
 
                 <div style={{ marginBottom: "60px" }}>
                     <div style={{ fontSize: "10px", color: "#444", borderBottom: "1px solid #1a1a1a", paddingBottom: "16px", marginBottom: "30px", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "2px" }}>REALTIME_METRICS</div>
                     {[
-                        { label: "Network Online", value: onlineCount, color: "#fff", icon: "●" },
-                        { label: "Active Nodes", value: activeMatches, color: "#8b5cf6", icon: "≈" },
-                        { label: "Social Karma", value: profile?.karma || 100, color: "#facc15", icon: "◈" }
+                        { label: "Network Online", value: onlineCount, color: "#fff", icon: "●", loaded: onlineCount !== 0 },
+                        { label: "Active Nodes", value: activeMatches, color: "#8b5cf6", icon: "≈", loaded: true }, // 0 is valid for matches
+                        { label: "Social Karma", value: profile?.karma || 100, color: "#facc15", icon: "◈", loaded: !!profile }
                     ].map(s => (
                         <div key={s.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                 <span style={{ color: s.color, fontSize: "14px", animation: s.label.includes("Online") ? "pulse-dot 2s infinite" : "none" }}>{s.icon}</span>
                                 <span style={{ color: "#444", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace" }}>{s.label}</span>
                             </div>
-                            <span style={{ color: s.color, fontSize: "18px", fontWeight: 900, fontFamily: "'JetBrains Mono', monospace" }}>{s.value}</span>
+                            {s.loaded ? (
+                                <span style={{ color: s.color, fontSize: "18px", fontWeight: 900, fontFamily: "'JetBrains Mono', monospace" }}>{s.value}</span>
+                            ) : (
+                                <div style={{ width: "30px", height: "18px", background: "rgba(255,255,255,0.05)", animation: "pulse-skeleton 1.5s infinite" }} />
+                            )}
                         </div>
                     ))}
                 </div>
@@ -228,6 +246,11 @@ export default function DashboardView({ user, profile, onStartMatch }) {
                 @keyframes pulse-dot {
                     0%, 100% { opacity: 0.3; transform: scale(0.9); }
                     50% { opacity: 1; transform: scale(1.1); }
+                }
+
+                @keyframes pulse-skeleton {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.4; }
                 }
 
                 .dash-container {
