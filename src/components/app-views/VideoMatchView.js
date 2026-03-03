@@ -9,7 +9,8 @@ import {
 } from "firebase/firestore";
 
 const servers = {
-    iceServers: [{ urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }]
+    iceServers: [{ urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }],
+    iceCandidatePoolSize: 10,
 };
 
 export default function VideoMatchView({ user, profile, mode, onEnd }) {
@@ -140,59 +141,77 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         setIsSearching(false);
         setPartner(pData);
         setSafetyBlur(true);
-        setTimeout(() => setSafetyBlur(false), 1500);
+        setTimeout(() => setSafetyBlur(false), 800);
         setMessages([{ id: "sys", text: `Connected with ${pData.name}. Secure channel established.`, sender: "system" }]);
 
         const peer = new RTCPeerConnection(servers);
         pc.current = peer;
-        if (streamRef.current) streamRef.current.getTracks().forEach(t => peer.addTrack(t, streamRef.current));
+
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(t => peer.addTrack(t, streamRef.current));
+        }
 
         peer.ontrack = (e) => {
-            console.log("WebRTC: Remote track received:", e.track.kind);
             if (remoteVideoRef.current) {
-                if (e.streams && e.streams[0]) {
-                    remoteVideoRef.current.srcObject = e.streams[0];
-                } else {
-                    if (!remoteVideoRef.current.srcObject) {
-                        remoteVideoRef.current.srcObject = new MediaStream();
-                    }
-                    remoteVideoRef.current.srcObject.addTrack(e.track);
+                const stream = (e.streams && e.streams[0]) || new MediaStream([e.track]);
+                if (remoteVideoRef.current.srcObject !== stream) {
+                    remoteVideoRef.current.srcObject = stream;
+                    console.log(`WebRTC: Attached remote ${e.track.kind} track`);
                 }
-
-                remoteVideoRef.current.oncanplay = () => {
-                    remoteVideoRef.current?.play().catch(() => { });
-                };
+                remoteVideoRef.current.play().catch(() => { });
             }
         };
 
         const callDoc = doc(db, "calls", callId);
         peer.onicecandidate = (e) => {
-            if (e.candidate) addDoc(collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON()).catch(() => { });
+            if (e.candidate) {
+                addDoc(collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON()).catch(() => { });
+            }
         };
 
         let remoteDescSet = false;
+        const iceBuffer = [];
+
+        const applyIceCandidate = async (data) => {
+            try {
+                if (remoteDescSet) {
+                    await peer.addIceCandidate(new RTCIceCandidate(data));
+                } else {
+                    iceBuffer.push(data);
+                }
+            } catch (e) {
+                console.warn("ICE candidate application failed:", e);
+            }
+        };
+
+        const flushIceBuffer = async () => {
+            while (iceBuffer.length > 0) {
+                const candidate = iceBuffer.shift();
+                await peer.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => { });
+            }
+        };
 
         if (isCaller) {
             const offer = await peer.createOffer();
             await peer.setLocalDescription(offer);
             await setDoc(callDoc, { offer: { sdp: offer.sdp, type: offer.type } });
 
-            const unsubCall = onSnapshot(callDoc, async (s) => {
+            onSnapshot(callDoc, async (s) => {
                 const d = s.data();
                 if (d?.answer && !remoteDescSet && peer.signalingState === "have-local-offer") {
                     remoteDescSet = true;
                     await peer.setRemoteDescription(new RTCSessionDescription(d.answer)).catch(console.error);
+                    await flushIceBuffer();
                 }
             });
 
-            const unsubIce = onSnapshot(collection(callDoc, "calleeCandidates"), (s) => {
+            onSnapshot(collection(callDoc, "calleeCandidates"), (s) => {
                 s.docChanges().forEach(async (c) => {
-                    if (c.type === "added") await peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
+                    if (c.type === "added") await applyIceCandidate(c.doc.data());
                 });
             });
-            // Cleanup listeners on peer closure or next
         } else {
-            const unsubCall = onSnapshot(callDoc, async (s) => {
+            onSnapshot(callDoc, async (s) => {
                 const d = s.data();
                 if (d?.offer && !remoteDescSet) {
                     remoteDescSet = true;
@@ -200,12 +219,13 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                     const ans = await peer.createAnswer();
                     await peer.setLocalDescription(ans);
                     await updateDoc(callDoc, { answer: { sdp: ans.sdp, type: ans.type } });
+                    await flushIceBuffer();
                 }
             });
 
-            const unsubIce = onSnapshot(collection(callDoc, "callerCandidates"), (s) => {
+            onSnapshot(collection(callDoc, "callerCandidates"), (s) => {
                 s.docChanges().forEach(async (c) => {
-                    if (c.type === "added") await peer.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => { });
+                    if (c.type === "added") await applyIceCandidate(c.doc.data());
                 });
             });
         }

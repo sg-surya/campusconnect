@@ -76,14 +76,27 @@ export default function AppShell() {
     // Hydration match / Loading state
     if (!mounted || loading || !user) {
         return (
-            <div className="loader-screen">
-                <div className="spinner"></div>
+            <div style={{
+                height: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#050505",
+                color: "#555",
+                fontFamily: "monospace",
+                gap: "20px"
+            }}>
+                <div style={{
+                    width: "40px",
+                    height: "40px",
+                    border: "2px solid #1a1a1a",
+                    borderTopColor: "#8b5cf6",
+                    borderRadius: "50%",
+                    animation: "spin 0.8s linear infinite"
+                }}></div>
                 <span>SECURE ACCESS INITIALIZING...</span>
-                <style jsx>{`
-                    .loader-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #050505; color: #555; font-family: monospace; gap: 20px; }
-                    .spinner { width: 40px; height: 40px; border: 2px solid #1a1a1a; border-top-color: #8b5cf6; border-radius: 50%; animation: spin 0.8s linear infinite; }
-                    @keyframes spin { to { transform: rotate(360deg); } }
-                `}</style>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }
