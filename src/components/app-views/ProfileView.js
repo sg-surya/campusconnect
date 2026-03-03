@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { isCollegeEmail } from "@/lib/collegeDomains";
 
 export default function ProfileView({ user, profile }) {
     const [isSaving, setIsSaving] = useState(false);
@@ -30,7 +31,15 @@ export default function ProfileView({ user, profile }) {
 
     return (
         <div className="profile-wrapper" style={{ padding: "60px", maxWidth: "800px", margin: "0 auto" }}>
-            <h1 style={{ fontSize: "3rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-3px", marginBottom: "40px" }}>Your Profile.</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "40px" }}>
+                <h1 style={{ fontSize: "3rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-3px", margin: 0 }}>Your Profile.</h1>
+                {isCollegeEmail(user?.email) && (
+                    <div title="Verified Student" style={{ color: "#8b5cf6", background: "rgba(139,92,246,0.1)", padding: "8px 12px", borderRadius: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 7l11 5 9-4.09V17h2V7L12 2z" /><path d="M12 14l-7-3.22V15a7 7 0 0 0 14 0v-4.22L12 14z" /></svg>
+                        <span style={{ fontSize: "10px", fontWeight: 900, fontFamily: "'JetBrains Mono', monospace" }}>VERIFIED</span>
+                    </div>
+                )}
+            </div>
 
             <form onSubmit={handleSave} style={{ background: "#0a0a0b", border: "1px solid #1a1a1a", padding: "40px" }}>
                 <div style={{ marginBottom: "24px" }}>

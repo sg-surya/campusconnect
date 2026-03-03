@@ -7,10 +7,24 @@ import {
     limit, getDocs, updateDoc, doc, deleteDoc,
     serverTimestamp, orderBy, setDoc, increment, runTransaction
 } from "firebase/firestore";
+import { isCollegeEmail } from "@/lib/collegeDomains";
 
 const servers = {
     iceServers: [{ urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }],
     iceCandidatePoolSize: 10,
+};
+
+const PROTOCOL_PREFIX = "CC_SIG_";
+const obfuscate = (str) => PROTOCOL_PREFIX + btoa(str);
+const deobfuscate = (str) => {
+    if (str.startsWith(PROTOCOL_PREFIX)) return atob(str.slice(PROTOCOL_PREFIX.length));
+    return str;
+};
+
+const toxicWords = ["bc", "mc", "caste", "abuse", "gand", "lund", "fake", "scam", "fuck", "bitch", "slut", "randi", "harami", "chodu"];
+const checkToxicity = (text) => {
+    const lower = text.toLowerCase();
+    return toxicWords.some(word => lower.includes(word));
 };
 
 export default function VideoMatchView({ user, profile, mode, onEnd }) {
@@ -83,7 +97,13 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
 
     const cleanupQueue = async () => {
         isConnecting.current = false;
+        // Signal partner FIRST by updating their doc status before deletion
         if (partnerDocIdRef.current) {
+            try {
+                await updateDoc(doc(db, "matchQueue", partnerDocIdRef.current), { status: "disconnected" }).catch(() => { });
+            } catch (e) { }
+            // Small delay to let the partner's listener fire before we delete
+            await new Promise(r => setTimeout(r, 500));
             try { await deleteDoc(doc(db, "matchQueue", partnerDocIdRef.current)).catch(() => { }); } catch (e) { }
             partnerDocIdRef.current = null;
         }
@@ -162,26 +182,50 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             }
         };
 
+        // DISCONNECT DETECTION: monitor WebRTC connection state
+        peer.onconnectionstatechange = () => {
+            const state = peer.connectionState;
+            console.log("WebRTC: Connection state ->", state);
+            if (state === "disconnected" || state === "failed" || state === "closed") {
+                console.log("WebRTC: Peer disconnected, triggering handleNext");
+                handleNext();
+            }
+        };
+
+        peer.oniceconnectionstatechange = () => {
+            const state = peer.iceConnectionState;
+            console.log("WebRTC: ICE state ->", state);
+            if (state === "disconnected" || state === "failed") {
+                // Give a brief window for recovery, then force disconnect
+                setTimeout(() => {
+                    if (pc.current && (pc.current.iceConnectionState === "disconnected" || pc.current.iceConnectionState === "failed")) {
+                        console.log("WebRTC: ICE connection lost, triggering handleNext");
+                        handleNext();
+                    }
+                }, 3000);
+            }
+        };
+
         const callDoc = doc(db, "calls", callId);
         peer.onicecandidate = (e) => {
             if (e.candidate) {
-                addDoc(collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON()).catch(() => { });
+                const enc = obfuscate(JSON.stringify(e.candidate.toJSON()));
+                addDoc(collection(callDoc, isCaller ? "callerCandidates" : "calleeCandidates"), { data: enc }).catch(() => { });
             }
         };
 
         let remoteDescSet = false;
         const iceBuffer = [];
 
-        const applyIceCandidate = async (data) => {
+        const applyIceCandidate = async (encData) => {
             try {
+                const data = JSON.parse(deobfuscate(encData));
                 if (remoteDescSet) {
                     await peer.addIceCandidate(new RTCIceCandidate(data));
                 } else {
                     iceBuffer.push(data);
                 }
-            } catch (e) {
-                console.warn("ICE candidate application failed:", e);
-            }
+            } catch (e) { }
         };
 
         const flushIceBuffer = async () => {
@@ -194,20 +238,22 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         if (isCaller) {
             const offer = await peer.createOffer();
             await peer.setLocalDescription(offer);
-            await setDoc(callDoc, { offer: { sdp: offer.sdp, type: offer.type } });
+            const encOffer = obfuscate(JSON.stringify({ sdp: offer.sdp, type: offer.type }));
+            await setDoc(callDoc, { offer: encOffer });
 
             onSnapshot(callDoc, async (s) => {
                 const d = s.data();
                 if (d?.answer && !remoteDescSet && peer.signalingState === "have-local-offer") {
                     remoteDescSet = true;
-                    await peer.setRemoteDescription(new RTCSessionDescription(d.answer)).catch(console.error);
+                    const ans = JSON.parse(deobfuscate(d.answer));
+                    await peer.setRemoteDescription(new RTCSessionDescription(ans)).catch(console.error);
                     await flushIceBuffer();
                 }
             });
 
             onSnapshot(collection(callDoc, "calleeCandidates"), (s) => {
                 s.docChanges().forEach(async (c) => {
-                    if (c.type === "added") await applyIceCandidate(c.doc.data());
+                    if (c.type === "added") await applyIceCandidate(c.doc.data().data);
                 });
             });
         } else {
@@ -215,17 +261,19 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                 const d = s.data();
                 if (d?.offer && !remoteDescSet) {
                     remoteDescSet = true;
-                    await peer.setRemoteDescription(new RTCSessionDescription(d.offer)).catch(console.error);
+                    const off = JSON.parse(deobfuscate(d.offer));
+                    await peer.setRemoteDescription(new RTCSessionDescription(off)).catch(console.error);
                     const ans = await peer.createAnswer();
                     await peer.setLocalDescription(ans);
-                    await updateDoc(callDoc, { answer: { sdp: ans.sdp, type: ans.type } });
+                    const encAns = obfuscate(JSON.stringify({ sdp: ans.sdp, type: ans.type }));
+                    await updateDoc(callDoc, { answer: encAns });
                     await flushIceBuffer();
                 }
             });
 
             onSnapshot(collection(callDoc, "callerCandidates"), (s) => {
                 s.docChanges().forEach(async (c) => {
-                    if (c.type === "added") await applyIceCandidate(c.doc.data());
+                    if (c.type === "added") await applyIceCandidate(c.doc.data().data);
                 });
             });
         }
@@ -376,11 +424,12 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
             setMessages(prev => [...prev.filter(m => m.sender === "system"), ...msgs]);
         });
 
-        const matchUnsub = onSnapshot(doc(db, "matchQueue", queueDocRef.current), (snap) => {
-            if (snap.exists() && snap.data().status === "disconnected") {
+        const myQueueId = queueDocRef.current;
+        const matchUnsub = myQueueId ? onSnapshot(doc(db, "matchQueue", myQueueId), (snap) => {
+            if (!snap.exists() || snap.data()?.status === "disconnected") {
                 handleNext();
             }
-        });
+        }) : () => { };
 
         return () => {
             msgUnsub();
@@ -393,6 +442,22 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
         if (!input.trim() || !currentCallId) return;
         const txt = input.trim();
         setInput("");
+
+        // SHADOW PURGE SYSTEM
+        if (checkToxicity(txt)) {
+            setMessages(prev => [...prev, { id: "sys-alert", text: "SYSTEM_ALERT: Abusive language detected. Your Karma has been penalized by -50. Repeated offenses will lead to a permanent ban.", sender: "system" }]);
+            try {
+                await runTransaction(db, async (tx) => {
+                    const uRef = doc(db, "users", user.uid);
+                    const uSnap = await tx.get(uRef);
+                    if (uSnap.exists()) {
+                        tx.update(uRef, { karma: increment(-50) });
+                    }
+                });
+            } catch (err) { }
+            return;
+        }
+
         await addDoc(collection(db, "calls", currentCallId, "messages"), { text: txt, senderId: user.uid, createdAt: serverTimestamp() }).catch(() => { });
     };
 
@@ -432,7 +497,14 @@ export default function VideoMatchView({ user, profile, mode, onEnd }) {
                             {partner.name[0]}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column" }}>
-                            <strong style={{ fontSize: "12px", color: "#fff", textTransform: "uppercase", letterSpacing: "1px" }}>{partner.name}</strong>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <strong style={{ fontSize: "12px", color: "#fff", textTransform: "uppercase", letterSpacing: "1px" }}>{partner.name}</strong>
+                                {isCollegeEmail(partner.email) && (
+                                    <div title="Verified Student" style={{ display: "flex", alignItems: "center", color: "#8b5cf6", background: "rgba(139,92,246,0.1)", padding: "2px 4px", borderRadius: "4px" }}>
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 7l11 5 9-4.09V17h2V7L12 2z" /><path d="M12 14l-7-3.22V15a7 7 0 0 0 14 0v-4.22L12 14z" /></svg>
+                                    </div>
+                                )}
+                            </div>
                             <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.5)", fontFamily: "'JetBrains Mono', monospace" }}>{partner.college?.toUpperCase()}</span>
                         </div>
                     </div>
